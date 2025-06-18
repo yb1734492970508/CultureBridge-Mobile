@@ -7,9 +7,9 @@ import { StatusBar } from 'expo-status-bar';
 
 // 导入屏幕组件
 import ModernHomeScreen from './src/screens/ModernHomeScreen';
-import ChatScreen from './src/screens/ChatScreen';
+import ModernChatScreen from './src/screens/ModernChatScreen';
 import ModernLearningScreen from './src/screens/ModernLearningScreen';
-import ProfileScreen from './src/screens/ProfileScreen';
+import ModernProfileScreen from './src/screens/ModernProfileScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 
@@ -57,7 +57,7 @@ function MainTabNavigator() {
       />
       <Tab.Screen 
         name="Chat" 
-        component={ChatScreen} 
+        component={ModernChatScreen} 
         options={{ title: '聊天' }}
       />
       <Tab.Screen 
@@ -67,7 +67,7 @@ function MainTabNavigator() {
       />
       <Tab.Screen 
         name="Profile" 
-        component={ProfileScreen} 
+        component={ModernProfileScreen} 
         options={{ title: '我的' }}
       />
     </Tab.Navigator>
