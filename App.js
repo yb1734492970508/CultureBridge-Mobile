@@ -6,9 +6,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 
 // 导入屏幕组件
-import HomeScreen from './src/screens/HomeScreen';
+import ModernHomeScreen from './src/screens/ModernHomeScreen';
 import ChatScreen from './src/screens/ChatScreen';
-import LearningScreen from './src/screens/LearningScreen';
+import ModernLearningScreen from './src/screens/ModernLearningScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
@@ -36,20 +36,23 @@ function MainTabNavigator() {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#007AFF',
+        tabBarActiveTintColor: '#6B46C1',
         tabBarInactiveTintColor: 'gray',
-        headerStyle: {
-          backgroundColor: '#007AFF',
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: 'bold',
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          borderTopWidth: 0,
+          elevation: 0,
+          shadowOpacity: 0,
+          height: 80,
+          paddingBottom: 20,
+          paddingTop: 10,
         },
       })}
     >
       <Tab.Screen 
         name="Home" 
-        component={HomeScreen} 
+        component={ModernHomeScreen} 
         options={{ title: '首页' }}
       />
       <Tab.Screen 
@@ -59,7 +62,7 @@ function MainTabNavigator() {
       />
       <Tab.Screen 
         name="Learning" 
-        component={LearningScreen} 
+        component={ModernLearningScreen} 
         options={{ title: '学习' }}
       />
       <Tab.Screen 
@@ -74,7 +77,7 @@ function MainTabNavigator() {
 // 主应用导航器
 export default function App() {
   // 这里可以添加认证状态管理
-  const isAuthenticated = false; // 临时设置为 false，后续会实现真实的认证逻辑
+  const isAuthenticated = true; // 临时设置为 true 以便测试现代化界面
 
   return (
     <NavigationContainer>
