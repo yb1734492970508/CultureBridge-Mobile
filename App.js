@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
+import * as Localization from 'expo-localization';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 导入屏幕组件
 import ModernHomeScreen from './src/screens/ModernHomeScreen';
@@ -13,11 +15,16 @@ import ModernProfileScreen from './src/screens/ModernProfileScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 
+// 导入本地化服务
+import { I18nProvider, useI18n } from './src/services/I18nService';
+
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
 // 主要的标签导航器
 function MainTabNavigator() {
+  const { t } = useI18n();
+  
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -53,31 +60,50 @@ function MainTabNavigator() {
       <Tab.Screen 
         name="Home" 
         component={ModernHomeScreen} 
-        options={{ title: '首页' }}
+        options={{ title: t('nav.home') }}
       />
       <Tab.Screen 
         name="Chat" 
         component={ModernChatScreen} 
-        options={{ title: '聊天' }}
+        options={{ title: t('nav.chat') }}
       />
       <Tab.Screen 
         name="Learning" 
         component={ModernLearningScreen} 
-        options={{ title: '学习' }}
+        options={{ title: t('nav.learning') }}
       />
       <Tab.Screen 
         name="Profile" 
         component={ModernProfileScreen} 
-        options={{ title: '我的' }}
+        options={{ title: t('nav.profile') }}
       />
     </Tab.Navigator>
   );
 }
 
-// 主应用导航器
-export default function App() {
-  // 这里可以添加认证状态管理
-  const isAuthenticated = true; // 临时设置为 true 以便测试现代化界面
+// 应用内容组件
+function AppContent() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      setIsAuthenticated(!!token);
+    } catch (error) {
+      console.error('检查认证状态失败:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return null; // 或者显示加载屏幕
+  }
 
   return (
     <NavigationContainer>
@@ -93,6 +119,15 @@ export default function App() {
         )}
       </Stack.Navigator>
     </NavigationContainer>
+  );
+}
+
+// 主应用组件
+export default function App() {
+  return (
+    <I18nProvider>
+      <AppContent />
+    </I18nProvider>
   );
 }
 
