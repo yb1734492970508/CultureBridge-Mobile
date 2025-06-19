@@ -6,15 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
-<<<<<<< HEAD
   StatusBar,
   SafeAreaView,
-  Platform
-=======
+  Platform,
   Image,
-  StatusBar,
   RefreshControl,
->>>>>>> a3e2607a343e2ea52e9c4b7020d8f74c268068d3
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,234 +19,6 @@ import { useI18n } from '../services/I18nService';
 const { width, height } = Dimensions.get('window');
 
 const ModernHomeScreen = ({ navigation }) => {
-<<<<<<< HEAD
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [userStats, setUserStats] = useState({
-    points: 1250,
-    level: 'Intermediate',
-    streak: 7,
-    friends: 23
-  });
-
-  const features = [
-    {
-      icon: 'globe-outline',
-      title: '文化探索',
-      subtitle: '发现世界文化',
-      color: ['#667eea', '#764ba2'],
-      count: '150+ 国家'
-    },
-    {
-      icon: 'chatbubbles-outline',
-      title: '语言交流',
-      subtitle: '实时对话练习',
-      color: ['#f093fb', '#f5576c'],
-      count: '20+ 语言'
-    },
-    {
-      icon: 'people-outline',
-      title: '全球社区',
-      subtitle: '连接世界朋友',
-      color: ['#4facfe', '#00f2fe'],
-      count: '100K+ 用户'
-    },
-    {
-      icon: 'school-outline',
-      title: '智能学习',
-      subtitle: 'AI个性化课程',
-      color: ['#43e97b', '#38f9d7'],
-      count: '1000+ 课程'
-    }
-  ];
-
-  const culturalSpotlights = [
-    {
-      id: 1,
-      title: '日本茶道',
-      subtitle: '禅意生活艺术',
-      image: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=300&h=200&fit=crop',
-      participants: '1.2K',
-      category: '传统文化'
-    },
-    {
-      id: 2,
-      title: '意大利料理',
-      subtitle: '地中海美食文化',
-      image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=300&h=200&fit=crop',
-      participants: '2.8K',
-      category: '美食文化'
-    },
-    {
-      id: 3,
-      title: '印度瑜伽',
-      subtitle: '身心灵的和谐',
-      image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=200&fit=crop',
-      participants: '3.5K',
-      category: '健康生活'
-    }
-  ];
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % culturalSpotlights.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const renderHeader = () => (
-    <SafeAreaView style={styles.header}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      <LinearGradient
-        colors={['#667eea', '#764ba2']}
-        style={styles.headerGradient}
-      >
-        <View style={styles.headerContent}>
-          <View style={styles.headerTop}>
-            <View style={styles.logoContainer}>
-              <View style={styles.logo}>
-                <Ionicons name="globe" size={24} color="#fff" />
-              </View>
-              <Text style={styles.logoText}>CultureBridge</Text>
-            </View>
-            <TouchableOpacity style={styles.notificationButton}>
-              <Ionicons name="notifications-outline" size={24} color="#fff" />
-              <View style={styles.notificationBadge} />
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeText}>欢迎回来！</Text>
-            <Text style={styles.welcomeSubtext}>继续你的文化探索之旅</Text>
-          </View>
-
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{userStats.points}</Text>
-              <Text style={styles.statLabel}>积分</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{userStats.streak}</Text>
-              <Text style={styles.statLabel}>连续天数</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{userStats.friends}</Text>
-              <Text style={styles.statLabel}>好友</Text>
-            </View>
-          </View>
-        </View>
-      </LinearGradient>
-    </SafeAreaView>
-  );
-
-  const renderFeatures = () => (
-    <View style={styles.featuresSection}>
-      <Text style={styles.sectionTitle}>探索功能</Text>
-      <View style={styles.featuresGrid}>
-        {features.map((feature, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.featureCard}
-            onPress={() => navigation.navigate(getFeatureRoute(feature.title))}
-          >
-            <LinearGradient
-              colors={feature.color}
-              style={styles.featureGradient}
-            >
-              <Ionicons name={feature.icon} size={32} color="#fff" />
-            </LinearGradient>
-            <Text style={styles.featureTitle}>{feature.title}</Text>
-            <Text style={styles.featureSubtitle}>{feature.subtitle}</Text>
-            <Text style={styles.featureCount}>{feature.count}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-
-  const renderCulturalSpotlights = () => (
-    <View style={styles.spotlightsSection}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>文化聚焦</Text>
-        <TouchableOpacity>
-          <Text style={styles.seeAllText}>查看全部</Text>
-        </TouchableOpacity>
-      </View>
-      
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.spotlightsScroll}
-        contentContainerStyle={styles.spotlightsContent}
-      >
-        {culturalSpotlights.map((spotlight, index) => (
-          <TouchableOpacity
-            key={spotlight.id}
-            style={styles.spotlightCard}
-            onPress={() => navigation.navigate('CulturalDetail', { spotlight })}
-          >
-            <Image source={{ uri: spotlight.image }} style={styles.spotlightImage} />
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.8)']}
-              style={styles.spotlightOverlay}
-            >
-              <View style={styles.spotlightContent}>
-                <Text style={styles.spotlightCategory}>{spotlight.category}</Text>
-                <Text style={styles.spotlightTitle}>{spotlight.title}</Text>
-                <Text style={styles.spotlightSubtitle}>{spotlight.subtitle}</Text>
-                <View style={styles.spotlightStats}>
-                  <Ionicons name="people" size={16} color="#fff" />
-                  <Text style={styles.spotlightParticipants}>{spotlight.participants} 参与者</Text>
-                </View>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
-
-  const renderQuickActions = () => (
-    <View style={styles.quickActionsSection}>
-      <Text style={styles.sectionTitle}>快速操作</Text>
-      <View style={styles.quickActionsContainer}>
-        <TouchableOpacity
-          style={[styles.quickActionButton, { backgroundColor: '#667eea' }]}
-          onPress={() => navigation.navigate('Chat')}
-        >
-          <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />
-          <Text style={styles.quickActionText}>开始聊天</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.quickActionButton, { backgroundColor: '#f093fb' }]}
-          onPress={() => navigation.navigate('Learning')}
-        >
-          <Ionicons name="book" size={24} color="#fff" />
-          <Text style={styles.quickActionText}>学习课程</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.quickActionButton, { backgroundColor: '#43e97b' }]}
-          onPress={() => navigation.navigate('VoiceTranslation')}
-        >
-          <Ionicons name="mic" size={24} color="#fff" />
-          <Text style={styles.quickActionText}>语音翻译</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  const getFeatureRoute = (title) => {
-    switch (title) {
-      case '文化探索': return 'Community';
-      case '语言交流': return 'Chat';
-      case '全球社区': return 'Community';
-      case '智能学习': return 'Learning';
-      default: return 'Community';
-    }
-=======
   const { t } = useI18n();
   const [refreshing, setRefreshing] = useState(false);
   const [featuredCultures, setFeaturedCultures] = useState([]);
@@ -265,32 +33,32 @@ const ModernHomeScreen = ({ navigation }) => {
     setFeaturedCultures([
       {
         id: 1,
-        name: '日本茶道',
-        description: '体验禅意的茶艺文化',
+        name: t('home.japaneseTeaCeremony'),
+        description: t('home.japaneseTeaCeremonyDesc'),
         image: '🍵',
         participants: 1234,
         country: '日本'
       },
       {
         id: 2,
-        name: '意大利美食',
-        description: '学习正宗意式料理',
+        name: t('home.italianCuisine'),
+        description: t('home.italianCuisineDesc'),
         image: '🍝',
         participants: 2156,
         country: '意大利'
       },
       {
         id: 3,
-        name: '印度瑜伽',
-        description: '探索身心灵的平衡',
+        name: t('home.indianYoga'),
+        description: t('home.indianYogaDesc'),
         image: '🧘',
         participants: 3421,
         country: '印度'
       },
       {
         id: 4,
-        name: '墨西哥节庆',
-        description: '感受热情的拉美文化',
+        name: t('home.mexicanFiesta'),
+        description: t('home.mexicanFiestaDesc'),
         image: '🎉',
         participants: 1876,
         country: '墨西哥'
@@ -301,26 +69,25 @@ const ModernHomeScreen = ({ navigation }) => {
       {
         id: 1,
         type: 'language_exchange',
-        title: '与Maria练习西班牙语',
-        time: '2小时前',
+        title: t('home.activitySpanish'),
+        time: t('home.activityTime2h'),
         icon: 'chatbubbles'
       },
       {
         id: 2,
         type: 'cultural_post',
-        title: '分享了中国春节习俗',
-        time: '5小时前',
+        title: t('home.activityChineseNewYear'),
+        time: t('home.activityTime5h'),
         icon: 'camera'
       },
       {
         id: 3,
         type: 'learning_progress',
-        title: '完成法语课程第3章',
-        time: '1天前',
+        title: t('home.activityFrenchCourse'),
+        time: t('home.activityTime1d'),
         icon: 'book'
       }
     ]);
->>>>>>> a3e2607a343e2ea52e9c4b7020d8f74c268068d3
   };
 
   const onRefresh = async () => {
@@ -349,7 +116,7 @@ const ModernHomeScreen = ({ navigation }) => {
         <View style={styles.cultureStats}>
           <Ionicons name="people" size={14} color="#666" />
           <Text style={styles.cultureParticipants}>
-            {culture.participants.toLocaleString()} 参与者
+            {culture.participants.toLocaleString()} {t('home.participants')}
           </Text>
         </View>
       </View>
@@ -377,20 +144,6 @@ const ModernHomeScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-<<<<<<< HEAD
-      {renderHeader()}
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {renderFeatures()}
-        {renderCulturalSpotlights()}
-        {renderQuickActions()}
-        
-        {/* 底部间距 */}
-        <View style={styles.bottomSpacing} />
-=======
       <StatusBar barStyle="light-content" backgroundColor="#6B46C1" />
       
       {/* 头部区域 */}
@@ -416,7 +169,7 @@ const ModernHomeScreen = ({ navigation }) => {
               style={styles.quickActionGradient}
             >
               <Ionicons name="search" size={20} color="white" />
-              <Text style={styles.quickActionText}>探索</Text>
+              <Text style={styles.quickActionText}>{t('home.exploreButton')}</Text>
             </LinearGradient>
           </TouchableOpacity>
           
@@ -426,7 +179,7 @@ const ModernHomeScreen = ({ navigation }) => {
               style={styles.quickActionGradient}
             >
               <Ionicons name="people" size={20} color="white" />
-              <Text style={styles.quickActionText}>社区</Text>
+              <Text style={styles.quickActionText}>{t('navigation.community')}</Text>
             </LinearGradient>
           </TouchableOpacity>
           
@@ -436,7 +189,7 @@ const ModernHomeScreen = ({ navigation }) => {
               style={styles.quickActionGradient}
             >
               <Ionicons name="mic" size={20} color="white" />
-              <Text style={styles.quickActionText}>翻译</Text>
+              <Text style={styles.quickActionText}>{t('home.translate')}</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -455,7 +208,7 @@ const ModernHomeScreen = ({ navigation }) => {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{t('home.featuredCultures')}</Text>
             <TouchableOpacity>
-              <Text style={styles.seeAllText}>查看全部</Text>
+              <Text style={styles.seeAllText}>{t('common.seeAll')}</Text>
             </TouchableOpacity>
           </View>
           
@@ -473,7 +226,7 @@ const ModernHomeScreen = ({ navigation }) => {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{t('home.recentActivities')}</Text>
             <TouchableOpacity>
-              <Text style={styles.seeAllText}>查看全部</Text>
+              <Text style={styles.seeAllText}>{t('common.seeAll')}</Text>
             </TouchableOpacity>
           </View>
           
@@ -499,7 +252,6 @@ const ModernHomeScreen = ({ navigation }) => {
 
         {/* 底部间距 */}
         <View style={{ height: 100 }} />
->>>>>>> a3e2607a343e2ea52e9c4b7020d8f74c268068d3
       </ScrollView>
     </View>
   );
@@ -508,304 +260,56 @@ const ModernHomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-<<<<<<< HEAD
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F8FAFC',
   },
   header: {
-    backgroundColor: 'transparent',
-  },
-  headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 0 : StatusBar.currentHeight,
+    paddingTop: 50,
     paddingBottom: 20,
-  },
-  headerContent: {
     paddingHorizontal: 20,
   },
-  headerTop: {
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
   },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logo: {
-=======
-    backgroundColor: '#f8fafc',
-  },
-  header: {
-    paddingTop: StatusBar.currentHeight + 20,
-    paddingBottom: 30,
-    paddingHorizontal: 20,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 30,
-  },
   welcomeText: {
     fontSize: 28,
     fontWeight: 'bold',
     color: 'white',
-    marginBottom: 5,
   },
   subtitleText: {
     fontSize: 16,
     color: 'rgba(255,255,255,0.8)',
   },
   notificationButton: {
->>>>>>> a3e2607a343e2ea52e9c4b7020d8f74c268068d3
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.2)',
-<<<<<<< HEAD
-=======
     justifyContent: 'center',
     alignItems: 'center',
   },
   quickActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
+    marginTop: 20,
   },
   quickActionButton: {
-    flex: 1,
-    marginHorizontal: 5,
+    width: width / 3 - 30,
+    height: 80,
+    borderRadius: 15,
+    overflow: 'hidden',
   },
   quickActionGradient: {
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-    borderRadius: 15,
-    alignItems: 'center',
->>>>>>> a3e2607a343e2ea52e9c4b7020d8f74c268068d3
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
-<<<<<<< HEAD
-  logoText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  notificationButton: {
-    position: 'relative',
-    padding: 8,
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ff4757',
-  },
-  welcomeSection: {
-    marginBottom: 24,
-  },
-  welcomeText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  welcomeSubtext: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 16,
-    padding: 16,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  statDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  featuresSection: {
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 16,
-  },
-  featuresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  featureCard: {
-    width: (width - 60) / 2,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  featureGradient: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  featureTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2c3e50',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  featureSubtitle: {
-    fontSize: 12,
-    color: '#7f8c8d',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  featureCount: {
-    fontSize: 11,
-    color: '#3498db',
-    fontWeight: '500',
-  },
-  spotlightsSection: {
-    paddingLeft: 20,
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingRight: 20,
-    marginBottom: 16,
-  },
-  seeAllText: {
-    fontSize: 14,
-    color: '#3498db',
-    fontWeight: '500',
-  },
-  spotlightsScroll: {
-    marginLeft: -20,
-  },
-  spotlightsContent: {
-    paddingLeft: 20,
-    paddingRight: 20,
-  },
-  spotlightCard: {
-    width: 280,
-    height: 200,
-    borderRadius: 16,
-    marginRight: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  spotlightImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  spotlightOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '70%',
-    justifyContent: 'flex-end',
-  },
-  spotlightContent: {
-    padding: 16,
-  },
-  spotlightCategory: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 4,
-  },
-  spotlightTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  spotlightSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: 8,
-  },
-  spotlightStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  spotlightParticipants: {
-    fontSize: 12,
-    color: '#fff',
-    marginLeft: 4,
-  },
-  quickActionsSection: {
-    padding: 20,
-  },
-  quickActionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  quickActionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginHorizontal: 4,
-=======
   quickActionText: {
+    fontSize: 14,
+    fontWeight: 'bold',
     color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
     marginTop: 5,
   },
   content: {
@@ -813,11 +317,11 @@ const styles = StyleSheet.create({
     marginTop: -20,
     borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#F8FAFC',
   },
   section: {
-    marginTop: 30,
     paddingHorizontal: 20,
+    marginTop: 20,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -828,7 +332,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: '#1F2937',
   },
   seeAllText: {
     fontSize: 14,
@@ -836,40 +340,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   horizontalScroll: {
-    marginLeft: -20,
-    paddingLeft: 20,
+    marginBottom: 10,
   },
   cultureCard: {
-    width: 200,
+    width: width * 0.4,
     marginRight: 15,
-    backgroundColor: 'white',
-    borderRadius: 20,
+    borderRadius: 15,
     overflow: 'hidden',
->>>>>>> a3e2607a343e2ea52e9c4b7020d8f74c268068d3
+    backgroundColor: 'white',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-<<<<<<< HEAD
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 3,
   },
-  quickActionText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-    marginLeft: 8,
-  },
-  bottomSpacing: {
-    height: 20,
-=======
-    shadowRadius: 8,
-    elevation: 5,
-  },
   cultureGradient: {
-    height: 120,
+    height: 100,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -877,18 +363,18 @@ const styles = StyleSheet.create({
     fontSize: 40,
   },
   cultureInfo: {
-    padding: 15,
+    padding: 10,
   },
   cultureName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: '#1F2937',
     marginBottom: 5,
   },
   cultureDescription: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 10,
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 5,
   },
   cultureStats: {
     flexDirection: 'row',
@@ -896,26 +382,31 @@ const styles = StyleSheet.create({
   },
   cultureParticipants: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#6B7280',
     marginLeft: 5,
   },
   activitiesContainer: {
     backgroundColor: 'white',
     borderRadius: 15,
-    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
+    paddingVertical: 15,
+    paddingHorizontal: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: '#F3F4F6',
   },
   activityIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f3f4f6',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#EEF2FF',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
@@ -925,32 +416,30 @@ const styles = StyleSheet.create({
   },
   activityTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 2,
+    fontWeight: '500',
+    color: '#1F2937',
   },
   activityTime: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
   },
   topicsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 10,
   },
   topicTag: {
-    backgroundColor: '#e0e7ff',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    backgroundColor: '#E0E7FF',
     borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
     marginRight: 10,
     marginBottom: 10,
   },
   topicText: {
     fontSize: 14,
-    color: '#6B46C1',
-    fontWeight: '600',
->>>>>>> a3e2607a343e2ea52e9c4b7020d8f74c268068d3
+    color: '#4F46E5',
+    fontWeight: '500',
   },
 });
 
