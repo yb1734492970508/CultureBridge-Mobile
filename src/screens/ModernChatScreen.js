@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,255 +6,95 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Image,
-  Dimensions,
-  StatusBar,
   SafeAreaView,
-  FlatList
+  StatusBar,
+  Platform
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
-const { width, height } = Dimensions.get('window');
-
-const ModernChatScreen = () => {
-  const [selectedRoom, setSelectedRoom] = useState(null);
+const ModernChatScreen = ({ navigation }) => {
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([]);
-
-  const chatRooms = [
+  const [messages, setMessages] = useState([
     {
       id: 1,
-      name: "Spanish Learners",
-      language: "🇪🇸",
-      members: 1247,
-      lastMessage: "¡Hola! ¿Cómo están todos?",
-      time: "2 min ago",
-      online: 23,
-      color: ['#FF6B6B', '#FF8E53']
+      text: 'Hello! Welcome to CultureBridge! 🌍',
+      sender: 'other',
+      time: '10:30',
+      translated: false
     },
     {
       id: 2,
-      name: "Japanese Culture",
-      language: "🇯🇵",
-      members: 892,
-      lastMessage: "今日は桜について話しましょう",
-      time: "5 min ago",
-      online: 18,
-      color: ['#4ECDC4', '#44A08D']
+      text: '你好！欢迎来到文化桥梁！',
+      sender: 'me',
+      time: '10:31',
+      translated: false
     },
     {
       id: 3,
-      name: "French Café",
-      language: "🇫🇷",
-      members: 634,
-      lastMessage: "Bonjour mes amis!",
-      time: "12 min ago",
-      online: 31,
-      color: ['#667eea', '#764ba2']
-    },
-    {
-      id: 4,
-      name: "Korean K-Pop",
-      language: "🇰🇷",
-      members: 2156,
-      lastMessage: "새로운 노래 추천해주세요!",
-      time: "18 min ago",
-      online: 45,
-      color: ['#f093fb', '#f5576c']
-    },
-    {
-      id: 5,
-      name: "Italian Cooking",
-      language: "🇮🇹",
-      members: 789,
-      lastMessage: "Chi vuole la ricetta della pasta?",
-      time: "25 min ago",
-      online: 12,
-      color: ['#ffecd2', '#fcb69f']
-    },
-    {
-      id: 6,
-      name: "German Philosophy",
-      language: "🇩🇪",
-      members: 445,
-      lastMessage: "Guten Tag! Wie geht es euch?",
-      time: "1 hour ago",
-      online: 8,
-      color: ['#a8edea', '#fed6e3']
+      text: 'I would love to learn about Chinese culture!',
+      sender: 'other',
+      time: '10:32',
+      translated: false
     }
-  ];
-
-  const sampleMessages = [
-    {
-      id: 1,
-      user: "Maria",
-      avatar: "👩🏻",
-      message: "¡Hola! ¿Cómo están todos hoy?",
-      time: "10:30 AM",
-      isMe: false
-    },
-    {
-      id: 2,
-      user: "You",
-      avatar: "👤",
-      message: "¡Muy bien! Estoy practicando español.",
-      time: "10:32 AM",
-      isMe: true
-    },
-    {
-      id: 3,
-      user: "Carlos",
-      avatar: "👨🏽",
-      message: "¡Excelente! ¿De dónde eres?",
-      time: "10:33 AM",
-      isMe: false
-    },
-    {
-      id: 4,
-      user: "You",
-      avatar: "👤",
-      message: "Soy de China. Me encanta la cultura española.",
-      time: "10:35 AM",
-      isMe: true
-    }
-  ];
-
-  useEffect(() => {
-    if (selectedRoom) {
-      setMessages(sampleMessages);
-    }
-  }, [selectedRoom]);
-
-  const renderChatRoom = ({ item }) => (
-    <TouchableOpacity
-      style={styles.roomCard}
-      onPress={() => setSelectedRoom(item)}
-    >
-      <LinearGradient
-        colors={item.color}
-        style={styles.roomGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.roomHeader}>
-          <View style={styles.roomInfo}>
-            <Text style={styles.roomLanguage}>{item.language}</Text>
-            <View style={styles.roomDetails}>
-              <Text style={styles.roomName}>{item.name}</Text>
-              <Text style={styles.roomMembers}>{item.members.toLocaleString()} members</Text>
-            </View>
-          </View>
-          <View style={styles.onlineIndicator}>
-            <View style={styles.onlineDot} />
-            <Text style={styles.onlineText}>{item.online} online</Text>
-          </View>
-        </View>
-        
-        <View style={styles.roomFooter}>
-          <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.lastMessage}
-          </Text>
-          <Text style={styles.messageTime}>{item.time}</Text>
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
-  );
-
-  const renderMessage = ({ item }) => (
-    <View style={[styles.messageContainer, item.isMe ? styles.myMessage : styles.otherMessage]}>
-      {!item.isMe && (
-        <View style={styles.avatarContainer}>
-          <Text style={styles.avatar}>{item.avatar}</Text>
-        </View>
-      )}
-      <View style={[styles.messageBubble, item.isMe ? styles.myBubble : styles.otherBubble]}>
-        {!item.isMe && <Text style={styles.userName}>{item.user}</Text>}
-        <Text style={[styles.messageText, item.isMe ? styles.myMessageText : styles.otherMessageText]}>
-          {item.message}
-        </Text>
-        <Text style={[styles.messageTime, item.isMe ? styles.myMessageTime : styles.otherMessageTime]}>
-          {item.time}
-        </Text>
-      </View>
-      {item.isMe && (
-        <View style={styles.avatarContainer}>
-          <Text style={styles.avatar}>{item.avatar}</Text>
-        </View>
-      )}
-    </View>
-  );
+  ]);
 
   const sendMessage = () => {
     if (message.trim()) {
       const newMessage = {
         id: messages.length + 1,
-        user: "You",
-        avatar: "👤",
-        message: message.trim(),
+        text: message,
+        sender: 'me',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isMe: true
+        translated: false
       };
       setMessages([...messages, newMessage]);
       setMessage('');
     }
   };
 
-  if (selectedRoom) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#667eea" />
-        
-        {/* Chat Header */}
-        <LinearGradient
-          colors={selectedRoom.color}
-          style={styles.chatHeader}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+  const renderMessage = (msg) => (
+    <View
+      key={msg.id}
+      style={[
+        styles.messageContainer,
+        msg.sender === 'me' ? styles.myMessage : styles.otherMessage
+      ]}
+    >
+      <View
+        style={[
+          styles.messageBubble,
+          msg.sender === 'me' ? styles.myBubble : styles.otherBubble
+        ]}
+      >
+        <Text
+          style={[
+            styles.messageText,
+            msg.sender === 'me' ? styles.myMessageText : styles.otherMessageText
+          ]}
         >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => setSelectedRoom(null)}
+          {msg.text}
+        </Text>
+        <View style={styles.messageFooter}>
+          <Text
+            style={[
+              styles.messageTime,
+              msg.sender === 'me' ? styles.myMessageTime : styles.otherMessageTime
+            ]}
           >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          <View style={styles.chatHeaderInfo}>
-            <Text style={styles.chatRoomName}>{selectedRoom.name}</Text>
-            <Text style={styles.chatRoomStatus}>{selectedRoom.online} online • {selectedRoom.members.toLocaleString()} members</Text>
-          </View>
-          <TouchableOpacity style={styles.moreButton}>
-            <Text style={styles.moreIcon}>⋯</Text>
-          </TouchableOpacity>
-        </LinearGradient>
-
-        {/* Messages */}
-        <FlatList
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id.toString()}
-          style={styles.messagesList}
-          contentContainerStyle={styles.messagesContent}
-        />
-
-        {/* Message Input */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.messageInput}
-            placeholder="Type a message..."
-            placeholderTextColor="#A0AEC0"
-            value={message}
-            onChangeText={setMessage}
-            multiline
-          />
-          <TouchableOpacity
-            style={styles.sendButton}
-            onPress={sendMessage}
-          >
-            <Text style={styles.sendIcon}>→</Text>
+            {msg.time}
+          </Text>
+          <TouchableOpacity style={styles.translateButton}>
+            <Ionicons 
+              name="language-outline" 
+              size={14} 
+              color={msg.sender === 'me' ? '#fff' : '#667eea'} 
+            />
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
-    );
-  }
+      </View>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -264,25 +104,74 @@ const ModernChatScreen = () => {
       <LinearGradient
         colors={['#667eea', '#764ba2']}
         style={styles.header}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
       >
-        <Text style={styles.headerTitle}>Global Chat Rooms</Text>
-        <Text style={styles.headerSubtitle}>Connect with language learners worldwide</Text>
+        <View style={styles.headerContent}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          
+          <View style={styles.headerInfo}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>JD</Text>
+            </View>
+            <View style={styles.userInfo}>
+              <Text style={styles.userName}>John Doe</Text>
+              <Text style={styles.userStatus}>在线 • 正在输入...</Text>
+            </View>
+          </View>
+          
+          <TouchableOpacity style={styles.moreButton}>
+            <Ionicons name="ellipsis-vertical" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
 
-      {/* Chat Rooms List */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.roomsContainer}>
-          <FlatList
-            data={chatRooms}
-            renderItem={renderChatRoom}
-            keyExtractor={(item) => item.id.toString()}
-            scrollEnabled={false}
-            contentContainerStyle={styles.roomsList}
-          />
-        </View>
+      {/* Messages */}
+      <ScrollView 
+        style={styles.messagesContainer}
+        contentContainerStyle={styles.messagesContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {messages.map(renderMessage)}
       </ScrollView>
+
+      {/* Input Area */}
+      <View style={styles.inputContainer}>
+        <View style={styles.inputWrapper}>
+          <TouchableOpacity style={styles.attachButton}>
+            <Ionicons name="add" size={24} color="#667eea" />
+          </TouchableOpacity>
+          
+          <TextInput
+            style={styles.textInput}
+            value={message}
+            onChangeText={setMessage}
+            placeholder="输入消息..."
+            placeholderTextColor="#999"
+            multiline
+            maxLength={500}
+          />
+          
+          <TouchableOpacity style={styles.voiceButton}>
+            <Ionicons name="mic" size={20} color="#667eea" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.sendButton, message.trim() && styles.sendButtonActive]}
+            onPress={sendMessage}
+            disabled={!message.trim()}
+          >
+            <Ionicons 
+              name="send" 
+              size={20} 
+              color={message.trim() ? "#fff" : "#999"} 
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
     </SafeAreaView>
   );
 };
@@ -290,258 +179,173 @@ const ModernChatScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7FAFC',
+    backgroundColor: '#f8f9fa',
   },
   header: {
-    paddingTop: 20,
-    paddingBottom: 30,
-    paddingHorizontal: 20,
-    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 0 : StatusBar.currentHeight,
+    paddingBottom: 16,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: 'white',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-  },
-  content: {
-    flex: 1,
-  },
-  roomsContainer: {
-    padding: 20,
-  },
-  roomsList: {
-    gap: 16,
-  },
-  roomCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-  },
-  roomGradient: {
-    padding: 20,
-  },
-  roomHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  roomInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  roomLanguage: {
-    fontSize: 32,
-    marginRight: 12,
-  },
-  roomDetails: {
-    flex: 1,
-  },
-  roomName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: 'white',
-    marginBottom: 4,
-  },
-  roomMembers: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  onlineIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  onlineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#4ADE80',
-    marginRight: 4,
-  },
-  onlineText: {
-    fontSize: 12,
-    color: 'white',
-    fontWeight: '500',
-  },
-  roomFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  lastMessage: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-    flex: 1,
-    marginRight: 8,
-  },
-  messageTime: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  // Chat Screen Styles
-  chatHeader: {
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingTop: 20,
+    paddingTop: 8,
   },
   backButton: {
     padding: 8,
     marginRight: 8,
   },
-  backIcon: {
-    fontSize: 24,
-    color: 'white',
-    fontWeight: '600',
+  headerInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  chatHeaderInfo: {
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  userInfo: {
     flex: 1,
   },
-  chatRoomName: {
+  userName: {
     fontSize: 18,
     fontWeight: '600',
-    color: 'white',
+    color: '#fff',
+    marginBottom: 2,
   },
-  chatRoomStatus: {
+  userStatus: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 2,
+    color: 'rgba(255,255,255,0.8)',
   },
   moreButton: {
     padding: 8,
   },
-  moreIcon: {
-    fontSize: 20,
-    color: 'white',
-    fontWeight: '600',
-  },
-  messagesList: {
+  messagesContainer: {
     flex: 1,
-    backgroundColor: '#F7FAFC',
   },
   messagesContent: {
     padding: 16,
-    gap: 12,
+    paddingBottom: 100,
   },
   messageContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginVertical: 4,
+    marginBottom: 16,
   },
   myMessage: {
-    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
   },
   otherMessage: {
-    justifyContent: 'flex-start',
-  },
-  avatarContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 8,
-  },
-  avatar: {
-    fontSize: 16,
+    alignItems: 'flex-start',
   },
   messageBubble: {
-    maxWidth: width * 0.7,
+    maxWidth: '80%',
+    borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   myBubble: {
     backgroundColor: '#667eea',
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: 8,
   },
   otherBubble: {
-    backgroundColor: 'white',
-    borderBottomLeftRadius: 4,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  userName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4A5568',
-    marginBottom: 4,
+    backgroundColor: '#fff',
+    borderBottomLeftRadius: 8,
   },
   messageText: {
     fontSize: 16,
-    lineHeight: 20,
+    lineHeight: 22,
+    marginBottom: 4,
   },
   myMessageText: {
-    color: 'white',
+    color: '#fff',
   },
   otherMessageText: {
-    color: '#2D3748',
+    color: '#2c3e50',
   },
-  messageTime: {
-    fontSize: 11,
+  messageFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 4,
   },
+  messageTime: {
+    fontSize: 12,
+  },
   myMessageTime: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'right',
+    color: 'rgba(255,255,255,0.8)',
   },
   otherMessageTime: {
-    color: '#A0AEC0',
+    color: '#999',
+  },
+  translateButton: {
+    padding: 4,
   },
   inputContainer: {
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 12,
+  },
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 24,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
   },
-  messageInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+  attachButton: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  textInput: {
+    flex: 1,
     maxHeight: 100,
-    marginRight: 12,
-    backgroundColor: '#F7FAFC',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#2c3e50',
+  },
+  voiceButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#667eea',
-    alignItems: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#e0e0e0',
+    marginLeft: 4,
   },
-  sendIcon: {
-    fontSize: 18,
-    color: 'white',
-    fontWeight: '600',
+  sendButtonActive: {
+    backgroundColor: '#667eea',
   },
 });
 

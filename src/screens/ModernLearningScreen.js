@@ -5,517 +5,542 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
   SafeAreaView,
   StatusBar,
+  Platform,
+  Dimensions
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
-export default function LearningScreen({ navigation }) {
-  const [selectedTab, setSelectedTab] = useState('culture');
-  
-  const languages = [
-    { id: 'japanese', name: '日语', flag: '🇯🇵', level: 'Intermediate', progress: 65 },
-    { id: 'french', name: '法语', flag: '🇫🇷', level: 'Beginner', progress: 30 },
-    { id: 'spanish', name: '西班牙语', flag: '🇪🇸', level: 'Advanced', progress: 85 },
-    { id: 'korean', name: '韩语', flag: '🇰🇷', level: 'Beginner', progress: 15 }
+const ModernLearningScreen = ({ navigation }) => {
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [userProgress, setUserProgress] = useState({
+    level: 'Intermediate',
+    points: 1250,
+    streak: 7,
+    completedCourses: 12
+  });
+
+  const categories = [
+    { id: 'all', name: '全部', icon: 'apps' },
+    { id: 'language', name: '语言', icon: 'chatbubbles' },
+    { id: 'culture', name: '文化', icon: 'globe' },
+    { id: 'cooking', name: '烹饪', icon: 'restaurant' },
+    { id: 'art', name: '艺术', icon: 'color-palette' }
   ];
 
-  const culturalContent = [
+  const courses = [
     {
       id: 1,
-      title: 'Exploring Balinese Dance',
-      description: '深入了解巴厘岛传统舞蹈的历史和文化意义',
-      image: '🏛️',
-      difficulty: 'Intermediate'
+      title: '日语基础会话',
+      subtitle: '从零开始学习日语',
+      level: 'Beginner',
+      duration: '4 周',
+      progress: 65,
+      students: '2.3K',
+      rating: 4.8,
+      category: 'language',
+      color: ['#667eea', '#764ba2']
     },
     {
       id: 2,
-      title: 'Japanese Tea Ceremony',
-      description: '体验日本茶道的精神和仪式',
-      image: '🍵',
-      difficulty: 'Beginner'
+      title: '意大利料理文化',
+      subtitle: '探索地中海美食传统',
+      level: 'Intermediate',
+      duration: '3 周',
+      progress: 30,
+      students: '1.8K',
+      rating: 4.9,
+      category: 'culture',
+      color: ['#f093fb', '#f5576c']
+    },
+    {
+      id: 3,
+      title: '法语发音技巧',
+      subtitle: '掌握地道法语发音',
+      level: 'Advanced',
+      duration: '2 周',
+      progress: 0,
+      students: '1.2K',
+      rating: 4.7,
+      category: 'language',
+      color: ['#4facfe', '#00f2fe']
+    },
+    {
+      id: 4,
+      title: '中国书法艺术',
+      subtitle: '传统书法入门课程',
+      level: 'Beginner',
+      duration: '6 周',
+      progress: 85,
+      students: '950',
+      rating: 4.6,
+      category: 'art',
+      color: ['#43e97b', '#38f9d7']
     }
   ];
 
-  const translationExercise = {
-    question: "'a pomme",
-    options: ['apple', 'pear', 'grapes'],
-    correct: 0
-  };
-
-  const chatPartners = [
-    { id: 1, name: 'Santiago', age: 21, language: 'Spanish', message: 'Hello! Would you like to practice Spanish?' },
-    { id: 2, name: 'Marie', age: 25, language: 'French', message: 'Bonjour! Let\'s practice together!' }
+  const achievements = [
+    { id: 1, title: '语言新手', description: '完成第一门语言课程', icon: 'trophy', earned: true },
+    { id: 2, title: '文化探索者', description: '学习5种不同文化', icon: 'globe', earned: true },
+    { id: 3, title: '连续学习者', description: '连续学习7天', icon: 'flame', earned: true },
+    { id: 4, title: '社交达人', description: '与10位朋友互动', icon: 'people', earned: false }
   ];
 
-  const renderTabBar = () => (
-    <View style={styles.tabBar}>
-      <TouchableOpacity
-        style={[styles.tab, selectedTab === 'culture' && styles.activeTab]}
-        onPress={() => setSelectedTab('culture')}
-      >
-        <Text style={[styles.tabText, selectedTab === 'culture' && styles.activeTabText]}>Culture</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tab, selectedTab === 'language' && styles.activeTab]}
-        onPress={() => setSelectedTab('language')}
-      >
-        <Text style={[styles.tabText, selectedTab === 'language' && styles.activeTabText]}>Language</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tab, selectedTab === 'chat' && styles.activeTab]}
-        onPress={() => setSelectedTab('chat')}
-      >
-        <Text style={[styles.tabText, selectedTab === 'chat' && styles.activeTabText]}>Chat</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderCultureTab = () => (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-      <View style={styles.featuredCard}>
-        <Text style={styles.featuredIcon}>🏛️</Text>
-        <Text style={styles.featuredTitle}>Exploring Balinese Dance</Text>
-        <Text style={styles.featuredDescription}>深入了解巴厘岛传统舞蹈的历史和文化意义</Text>
-        <TouchableOpacity style={styles.startButton}>
-          <Text style={styles.startButtonText}>开始探索</Text>
-        </TouchableOpacity>
-      </View>
-      
-      {culturalContent.map(content => (
-        <TouchableOpacity key={content.id} style={styles.contentCard}>
-          <Text style={styles.contentIcon}>{content.image}</Text>
-          <View style={styles.contentInfo}>
-            <Text style={styles.contentTitle}>{content.title}</Text>
-            <Text style={styles.contentDescription}>{content.description}</Text>
-            <View style={styles.difficultyBadge}>
-              <Text style={styles.difficultyText}>{content.difficulty}</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
-  );
-
-  const renderLanguageTab = () => (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-      <View style={styles.translationCard}>
-        <Text style={styles.translationTitle}>Translate the following</Text>
-        <Text style={styles.translationQuestion}>Q. {translationExercise.question}</Text>
-        <View style={styles.optionsContainer}>
-          {translationExercise.options.map((option, index) => (
-            <TouchableOpacity key={index} style={styles.optionButton}>
-              <Text style={styles.optionText}>{option}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-      
-      <Text style={styles.sectionTitle}>选择学习语言</Text>
-      {languages.map(language => (
-        <TouchableOpacity key={language.id} style={styles.languageCard}>
-          <Text style={styles.languageFlag}>{language.flag}</Text>
-          <View style={styles.languageInfo}>
-            <Text style={styles.languageName}>{language.name}</Text>
-            <Text style={styles.languageLevel}>{language.level}</Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${language.progress}%` }]} />
-            </View>
-            <Text style={styles.progressText}>{language.progress}%</Text>
-          </View>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
-  );
-
-  const renderChatTab = () => (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-      <View style={styles.chatCard}>
-        <Text style={styles.chatIcon}>💬</Text>
-        <Text style={styles.chatTitle}>Chat</Text>
-        <View style={styles.chatDropdown}>
-          <Text style={styles.chatPartner}>Santiago ▼</Text>
-          <Text style={styles.chatMessage}>Hello! Would you like to practice Spanish?</Text>
-          <Text style={styles.chatAge}>21 age</Text>
-        </View>
-        <TouchableOpacity style={styles.chatReplyButton}>
-          <Text style={styles.chatReplyText}>Sure! Let's get started.</Text>
-          <Text style={styles.chatReplyAge}>21 age</Text>
-        </TouchableOpacity>
-      </View>
-      
-      <Text style={styles.sectionTitle}>语言伙伴</Text>
-      {chatPartners.map(partner => (
-        <TouchableOpacity key={partner.id} style={styles.partnerCard}>
-          <View style={styles.partnerAvatar}>
-            <Text style={styles.partnerInitial}>{partner.name[0]}</Text>
-          </View>
-          <View style={styles.partnerInfo}>
-            <Text style={styles.partnerName}>{partner.name}</Text>
-            <Text style={styles.partnerLanguage}>{partner.language} • {partner.age} 岁</Text>
-            <Text style={styles.partnerMessage}>{partner.message}</Text>
-          </View>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
-  );
-
-  const renderTabContent = () => {
-    switch (selectedTab) {
-      case 'culture':
-        return renderCultureTab();
-      case 'language':
-        return renderLanguageTab();
-      case 'chat':
-        return renderChatTab();
-      default:
-        return renderCultureTab();
-    }
-  };
-
-  return (
+  const renderHeader = () => (
     <LinearGradient
-      colors={['#0D9488', '#0F766E']}
-      style={styles.container}
+      colors={['#667eea', '#764ba2']}
+      style={styles.header}
     >
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="light-content" />
-        
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>CultureBridge</Text>
+      <SafeAreaView>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        <View style={styles.headerContent}>
+          <View style={styles.headerTop}>
+            <Text style={styles.headerTitle}>学习中心</Text>
+            <TouchableOpacity style={styles.searchButton}>
+              <Ionicons name="search" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.progressCard}>
+            <View style={styles.progressInfo}>
+              <Text style={styles.levelText}>{userProgress.level}</Text>
+              <Text style={styles.pointsText}>{userProgress.points} 积分</Text>
+            </View>
+            <View style={styles.progressStats}>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{userProgress.streak}</Text>
+                <Text style={styles.statLabel}>连续天数</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{userProgress.completedCourses}</Text>
+                <Text style={styles.statLabel}>已完成</Text>
+              </View>
+            </View>
+          </View>
         </View>
-        
-        {renderTabBar()}
-        {renderTabContent()}
       </SafeAreaView>
     </LinearGradient>
   );
-}
+
+  const renderCategories = () => (
+    <View style={styles.categoriesSection}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoriesContent}
+      >
+        {categories.map((category) => (
+          <TouchableOpacity
+            key={category.id}
+            style={[
+              styles.categoryButton,
+              selectedCategory === category.id && styles.categoryButtonActive
+            ]}
+            onPress={() => setSelectedCategory(category.id)}
+          >
+            <Ionicons
+              name={category.icon}
+              size={20}
+              color={selectedCategory === category.id ? '#fff' : '#667eea'}
+            />
+            <Text
+              style={[
+                styles.categoryText,
+                selectedCategory === category.id && styles.categoryTextActive
+              ]}
+            >
+              {category.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
+  const renderCourses = () => (
+    <View style={styles.coursesSection}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>推荐课程</Text>
+        <TouchableOpacity>
+          <Text style={styles.seeAllText}>查看全部</Text>
+        </TouchableOpacity>
+      </View>
+      
+      {courses.map((course) => (
+        <TouchableOpacity key={course.id} style={styles.courseCard}>
+          <LinearGradient
+            colors={course.color}
+            style={styles.courseGradient}
+          >
+            <View style={styles.courseHeader}>
+              <View style={styles.courseInfo}>
+                <Text style={styles.courseTitle}>{course.title}</Text>
+                <Text style={styles.courseSubtitle}>{course.subtitle}</Text>
+                <View style={styles.courseMeta}>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.8)" />
+                    <Text style={styles.metaText}>{course.duration}</Text>
+                  </View>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="people-outline" size={14} color="rgba(255,255,255,0.8)" />
+                    <Text style={styles.metaText}>{course.students}</Text>
+                  </View>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="star" size={14} color="#FFD700" />
+                    <Text style={styles.metaText}>{course.rating}</Text>
+                  </View>
+                </View>
+              </View>
+              <View style={styles.levelBadge}>
+                <Text style={styles.levelBadgeText}>{course.level}</Text>
+              </View>
+            </View>
+            
+            {course.progress > 0 && (
+              <View style={styles.progressSection}>
+                <View style={styles.progressBar}>
+                  <View 
+                    style={[styles.progressFill, { width: `${course.progress}%` }]} 
+                  />
+                </View>
+                <Text style={styles.progressText}>{course.progress}% 完成</Text>
+              </View>
+            )}
+          </LinearGradient>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
+  const renderAchievements = () => (
+    <View style={styles.achievementsSection}>
+      <Text style={styles.sectionTitle}>我的成就</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.achievementsContent}
+      >
+        {achievements.map((achievement) => (
+          <View
+            key={achievement.id}
+            style={[
+              styles.achievementCard,
+              achievement.earned && styles.achievementCardEarned
+            ]}
+          >
+            <View
+              style={[
+                styles.achievementIcon,
+                achievement.earned && styles.achievementIconEarned
+              ]}
+            >
+              <Ionicons
+                name={achievement.icon}
+                size={24}
+                color={achievement.earned ? '#FFD700' : '#ccc'}
+              />
+            </View>
+            <Text
+              style={[
+                styles.achievementTitle,
+                achievement.earned && styles.achievementTitleEarned
+              ]}
+            >
+              {achievement.title}
+            </Text>
+            <Text style={styles.achievementDescription}>
+              {achievement.description}
+            </Text>
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      {renderHeader()}
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {renderCategories()}
+        {renderCourses()}
+        {renderAchievements()}
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  safeArea: {
-    flex: 1,
+    backgroundColor: '#f8f9fa',
   },
   header: {
-    paddingHorizontal: 30,
-    paddingTop: 20,
-    paddingBottom: 30,
-    alignItems: 'center',
+    paddingBottom: 20,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: 'white',
+  headerContent: {
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 0 : StatusBar.currentHeight,
   },
-  
-  // Tab Bar Styles
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    marginHorizontal: 30,
-    borderRadius: 25,
-    padding: 5,
-    marginBottom: 30,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 20,
-  },
-  activeTab: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.7)',
-  },
-  activeTabText: {
-    color: 'white',
-  },
-  
-  // Tab Content Styles
-  tabContent: {
-    flex: 1,
-    paddingHorizontal: 30,
-    paddingBottom: 100,
-  },
-  
-  // Culture Tab Styles
-  featuredCard: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 20,
-    padding: 25,
-    alignItems: 'center',
-    marginBottom: 25,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  featuredIcon: {
-    fontSize: 48,
-    marginBottom: 15,
-  },
-  featuredTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: 'white',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  featuredDescription: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  startButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 20,
-  },
-  startButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  contentCard: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  contentIcon: {
-    fontSize: 32,
-    marginRight: 15,
-  },
-  contentInfo: {
-    flex: 1,
-  },
-  contentTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
-    marginBottom: 5,
-  },
-  contentDescription: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 10,
-    lineHeight: 18,
-  },
-  difficultyBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.3)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  difficultyText: {
-    color: '#10B981',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  
-  // Language Tab Styles
-  translationCard: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 20,
-    padding: 25,
-    marginBottom: 25,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  translationTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: 'white',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  translationQuestion: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: 'white',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  optionsContainer: {
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 10,
+    alignItems: 'center',
+    marginBottom: 20,
+    marginTop: 10,
   },
-  optionButton: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingVertical: 12,
-    borderRadius: 15,
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  searchButton: {
+    padding: 8,
+  },
+  progressCard: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  optionText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: 'white',
-    marginBottom: 20,
-  },
-  languageCard: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  languageFlag: {
-    fontSize: 32,
-    marginRight: 15,
-  },
-  languageInfo: {
+  progressInfo: {
     flex: 1,
   },
-  languageName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: 'white',
-    marginBottom: 5,
+  levelText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 4,
   },
-  languageLevel: {
-    fontSize: 14,
+  pointsText: {
+    fontSize: 16,
     color: 'rgba(255,255,255,0.8)',
-    marginBottom: 10,
+  },
+  progressStats: {
+    flexDirection: 'row',
+  },
+  statItem: {
+    alignItems: 'center',
+    marginLeft: 20,
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
+  categoriesSection: {
+    paddingVertical: 20,
+  },
+  categoriesContent: {
+    paddingHorizontal: 20,
+  },
+  categoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#667eea',
+  },
+  categoryButtonActive: {
+    backgroundColor: '#667eea',
+  },
+  categoryText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#667eea',
+    marginLeft: 6,
+  },
+  categoryTextActive: {
+    color: '#fff',
+  },
+  coursesSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: '#667eea',
+    fontWeight: '500',
+  },
+  courseCard: {
+    marginBottom: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  courseGradient: {
+    padding: 20,
+  },
+  courseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  courseInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  courseTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  courseSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 12,
+  },
+  courseMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+    marginBottom: 4,
+  },
+  metaText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    marginLeft: 4,
+  },
+  levelBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  levelBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  progressSection: {
+    marginTop: 8,
   },
   progressBar: {
-    height: 6,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 3,
-    marginBottom: 5,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 2,
+    marginBottom: 8,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#10B981',
-    borderRadius: 3,
+    backgroundColor: '#fff',
+    borderRadius: 2,
   },
   progressText: {
     fontSize: 12,
-    color: 'white',
-    fontWeight: '600',
-  },
-  
-  // Chat Tab Styles
-  chatCard: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 20,
-    padding: 25,
-    marginBottom: 25,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  chatIcon: {
-    fontSize: 48,
-    textAlign: 'center',
-    marginBottom: 15,
-  },
-  chatTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: 'white',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  chatDropdown: {
-    backgroundColor: '#0D9488',
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 15,
-  },
-  chatPartner: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
-    marginBottom: 8,
-  },
-  chatMessage: {
-    fontSize: 14,
     color: 'rgba(255,255,255,0.9)',
-    marginBottom: 5,
+    textAlign: 'right',
   },
-  chatAge: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
+  achievementsSection: {
+    paddingLeft: 20,
+    marginBottom: 24,
   },
-  chatReplyButton: {
-    backgroundColor: '#3B82F6',
-    borderRadius: 15,
-    padding: 15,
+  achievementsContent: {
+    paddingLeft: 0,
+    paddingRight: 20,
   },
-  chatReplyText: {
-    fontSize: 14,
-    color: 'white',
-    marginBottom: 5,
-  },
-  chatReplyAge: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  partnerCard: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  partnerAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#F97316',
+  achievementCard: {
+    width: 140,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginRight: 12,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  achievementCardEarned: {
+    backgroundColor: '#fff5e6',
+    borderWidth: 1,
+    borderColor: '#FFD700',
+  },
+  achievementIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#f0f0f0',
     justifyContent: 'center',
-    marginRight: 15,
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  partnerInitial: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: 'white',
+  achievementIconEarned: {
+    backgroundColor: '#fff',
   },
-  partnerInfo: {
-    flex: 1,
-  },
-  partnerName: {
-    fontSize: 16,
+  achievementTitle: {
+    fontSize: 14,
     fontWeight: '600',
-    color: 'white',
-    marginBottom: 5,
+    color: '#999',
+    textAlign: 'center',
+    marginBottom: 4,
   },
-  partnerLanguage: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 8,
+  achievementTitleEarned: {
+    color: '#2c3e50',
   },
-  partnerMessage: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    lineHeight: 18,
+  achievementDescription: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  bottomSpacing: {
+    height: 20,
   },
 });
+
+export default ModernLearningScreen;
 

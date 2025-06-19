@@ -5,312 +5,348 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
-  KeyboardAvoidingView,
+  SafeAreaView,
+  StatusBar,
   Platform,
-  ScrollView,
+  KeyboardAvoidingView,
+  ScrollView
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function RegisterScreen({ navigation }) {
+const RegisterScreen = ({ navigation }) => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
-    confirmPassword: '',
-    nativeLanguage: '',
-    learningLanguage: '',
+    confirmPassword: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const updateFormData = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async () => {
-    const { username, email, password, confirmPassword } = formData;
+    setIsLoading(true);
+    // 模拟注册过程
+    setTimeout(() => {
+      setIsLoading(false);
+      navigation.navigate('MainTabs');
+    }, 1500);
+  };
 
-    if (!username || !email || !password || !confirmPassword) {
-      Alert.alert('错误', '请填写所有必填字段');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('错误', '两次输入的密码不一致');
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('错误', '密码长度至少为6位');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // 这里将实现真实的注册逻辑
-      // 暂时模拟注册成功
-      setTimeout(() => {
-        setLoading(false);
-        Alert.alert('成功', '注册成功！请登录', [
-          { text: '确定', onPress: () => navigation.navigate('Login') }
-        ]);
-      }, 1000);
-    } catch (error) {
-      setLoading(false);
-      Alert.alert('错误', '注册失败，请重试');
-    }
+  const updateFormData = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.content}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="arrow-back" size={24} color="#007AFF" />
-            </TouchableOpacity>
-            <Text style={styles.title}>创建账号</Text>
-          </View>
-
-          {/* 注册表单 */}
-          <View style={styles.formContainer}>
-            <Text style={styles.subtitle}>加入 CultureBridge 社区</Text>
-            
-            <View style={styles.inputContainer}>
-              <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="用户名"
-                value={formData.username}
-                onChangeText={(value) => updateFormData('username', value)}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="邮箱地址"
-                value={formData.email}
-                onChangeText={(value) => updateFormData('email', value)}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="密码（至少6位）"
-                value={formData.password}
-                onChangeText={(value) => updateFormData('password', value)}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity 
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeIcon}
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#667eea" />
+      
+      <LinearGradient
+        colors={['#667eea', '#764ba2']}
+        style={styles.gradient}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Header */}
+            <View style={styles.header}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
               >
-                <Ionicons 
-                  name={showPassword ? "eye-outline" : "eye-off-outline"} 
-                  size={20} 
-                  color="#666" 
-                />
+                <Ionicons name="arrow-back" size={24} color="#fff" />
               </TouchableOpacity>
+              
+              <View style={styles.logoContainer}>
+                <View style={styles.logo}>
+                  <Ionicons name="globe" size={32} color="#fff" />
+                </View>
+                <Text style={styles.logoText}>加入CultureBridge</Text>
+                <Text style={styles.tagline}>开启全球文化交流之旅</Text>
+              </View>
             </View>
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="确认密码"
-                value={formData.confirmPassword}
-                onChangeText={(value) => updateFormData('confirmPassword', value)}
-                secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity 
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={styles.eyeIcon}
-              >
-                <Ionicons 
-                  name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} 
-                  size={20} 
-                  color="#666" 
-                />
-              </TouchableOpacity>
+            {/* Register Form */}
+            <View style={styles.formContainer}>
+              <View style={styles.formCard}>
+                <Text style={styles.welcomeText}>创建账户</Text>
+                <Text style={styles.subtitleText}>加入全球文化社区，与世界各地的朋友交流</Text>
+
+                {/* Username Input */}
+                <View style={styles.inputContainer}>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="person-outline" size={20} color="#667eea" />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="用户名"
+                      placeholderTextColor="#999"
+                      value={formData.username}
+                      onChangeText={(value) => updateFormData('username', value)}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+                </View>
+
+                {/* Email Input */}
+                <View style={styles.inputContainer}>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="mail-outline" size={20} color="#667eea" />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="邮箱地址"
+                      placeholderTextColor="#999"
+                      value={formData.email}
+                      onChangeText={(value) => updateFormData('email', value)}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+                </View>
+
+                {/* Password Input */}
+                <View style={styles.inputContainer}>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="lock-closed-outline" size={20} color="#667eea" />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="密码"
+                      placeholderTextColor="#999"
+                      value={formData.password}
+                      onChangeText={(value) => updateFormData('password', value)}
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      style={styles.eyeButton}
+                    >
+                      <Ionicons
+                        name={showPassword ? "eye-outline" : "eye-off-outline"}
+                        size={20}
+                        color="#999"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Confirm Password Input */}
+                <View style={styles.inputContainer}>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="lock-closed-outline" size={20} color="#667eea" />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="确认密码"
+                      placeholderTextColor="#999"
+                      value={formData.confirmPassword}
+                      onChangeText={(value) => updateFormData('confirmPassword', value)}
+                      secureTextEntry={!showConfirmPassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                      style={styles.eyeButton}
+                    >
+                      <Ionicons
+                        name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
+                        size={20}
+                        color="#999"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Terms and Conditions */}
+                <View style={styles.termsContainer}>
+                  <Text style={styles.termsText}>
+                    注册即表示您同意我们的
+                    <Text style={styles.termsLink}> 服务条款 </Text>
+                    和
+                    <Text style={styles.termsLink}> 隐私政策</Text>
+                  </Text>
+                </View>
+
+                {/* Register Button */}
+                <TouchableOpacity
+                  style={[styles.registerButton, isLoading && styles.registerButtonDisabled]}
+                  onPress={handleRegister}
+                  disabled={isLoading}
+                >
+                  <LinearGradient
+                    colors={['#667eea', '#764ba2']}
+                    style={styles.registerGradient}
+                  >
+                    {isLoading ? (
+                      <View style={styles.loadingContainer}>
+                        <Text style={styles.registerButtonText}>注册中...</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.registerButtonText}>创建账户</Text>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                {/* Login Link */}
+                <View style={styles.loginContainer}>
+                  <Text style={styles.loginText}>已有账户？</Text>
+                  <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                    <Text style={styles.loginLink}>立即登录</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-
-            <Text style={styles.sectionTitle}>语言偏好（可选）</Text>
-
-            <View style={styles.inputContainer}>
-              <Ionicons name="language-outline" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="母语（如：中文）"
-                value={formData.nativeLanguage}
-                onChangeText={(value) => updateFormData('nativeLanguage', value)}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Ionicons name="school-outline" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="想学习的语言（如：英语）"
-                value={formData.learningLanguage}
-                onChangeText={(value) => updateFormData('learningLanguage', value)}
-              />
-            </View>
-
-            <TouchableOpacity 
-              style={[styles.registerButton, loading && styles.registerButtonDisabled]}
-              onPress={handleRegister}
-              disabled={loading}
-            >
-              <Text style={styles.registerButtonText}>
-                {loading ? '注册中...' : '创建账号'}
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.termsContainer}>
-              <Text style={styles.termsText}>
-                注册即表示您同意我们的
-                <Text style={styles.termsLink}> 服务条款 </Text>
-                和
-                <Text style={styles.termsLink}> 隐私政策</Text>
-              </Text>
-            </View>
-
-            <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>已有账号？</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                <Text style={styles.loginLink}>立即登录</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </LinearGradient>
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+  },
+  gradient: {
+    flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-    paddingTop: 50,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: 30,
   },
   backButton: {
-    marginRight: 15,
+    alignSelf: 'flex-start',
+    padding: 8,
+    marginBottom: 20,
   },
-  title: {
+  logoContainer: {
+    alignItems: 'center',
+  },
+  logo: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  logoText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  tagline: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.8)',
+    textAlign: 'center',
   },
   formContainer: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 25,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  formCard: {
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 24,
+    padding: 32,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 10,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 25,
-  },
-  sectionTitle: {
-    fontSize: 16,
+  welcomeText: {
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
-    marginTop: 10,
-    marginBottom: 15,
+    color: '#2c3e50',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  subtitleText: {
+    fontSize: 16,
+    color: '#7f8c8d',
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 22,
   },
   inputContainer: {
+    marginBottom: 20,
+  },
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    marginBottom: 15,
-    paddingHorizontal: 15,
     backgroundColor: '#f8f9fa',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
   },
-  inputIcon: {
-    marginRight: 10,
-  },
-  input: {
+  textInput: {
     flex: 1,
-    height: 50,
     fontSize: 16,
-    color: '#333',
+    color: '#2c3e50',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
   },
-  eyeIcon: {
-    padding: 5,
-  },
-  registerButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 10,
-    height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  registerButtonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  registerButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+  eyeButton: {
+    padding: 8,
   },
   termsContainer: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   termsText: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 14,
+    color: '#7f8c8d',
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 20,
   },
   termsLink: {
-    color: '#007AFF',
-    fontWeight: 'bold',
+    color: '#667eea',
+    fontWeight: '500',
+  },
+  registerButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 24,
+  },
+  registerButtonDisabled: {
+    opacity: 0.7,
+  },
+  registerGradient: {
+    paddingVertical: 18,
+    alignItems: 'center',
+  },
+  registerButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   loginContainer: {
     flexDirection: 'row',
@@ -318,14 +354,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loginText: {
-    color: '#666',
-    fontSize: 14,
+    fontSize: 16,
+    color: '#7f8c8d',
+    marginRight: 4,
   },
   loginLink: {
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginLeft: 5,
+    fontSize: 16,
+    color: '#667eea',
+    fontWeight: '600',
   },
 });
+
+export default RegisterScreen;
 
