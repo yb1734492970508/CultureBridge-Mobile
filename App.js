@@ -2,29 +2,50 @@ import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import * as Localization from 'expo-localization';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+import { View, Text, ActivityIndicator } from 'react-native';
+
+// 导入国际化服务
+import { I18nProvider, useI18n } from './src/services/I18nService';
 
 // 导入屏幕组件
 import ModernHomeScreen from './src/screens/ModernHomeScreen';
 import ModernChatScreen from './src/screens/ModernChatScreen';
 import ModernLearningScreen from './src/screens/ModernLearningScreen';
+import ModernWalletScreen from './src/screens/ModernWalletScreen';
 import ModernProfileScreen from './src/screens/ModernProfileScreen';
-import LoginScreen from './src/screens/LoginScreen';
-import RegisterScreen from './src/screens/RegisterScreen';
-
-// 导入本地化服务
-import { I18nProvider, useI18n } from './src/services/I18nService';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-// 主要的标签导航器
-function MainTabNavigator() {
+// 加载屏幕组件
+const LoadingScreen = () => {
   const { t } = useI18n();
   
+  return (
+    <View style={{ 
+      flex: 1, 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      backgroundColor: '#F8FAFC' 
+    }}>
+      <ActivityIndicator size="large" color="#6B46C1" />
+      <Text style={{ 
+        marginTop: 20, 
+        fontSize: 16, 
+        color: '#6B7280' 
+      }}>
+        {t('common.loading')}
+      </Text>
+    </View>
+  );
+};
+
+// 主要标签导航器
+function MainTabNavigator() {
+  const { t } = useI18n();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -37,6 +58,8 @@ function MainTabNavigator() {
             iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
           } else if (route.name === 'Learning') {
             iconName = focused ? 'book' : 'book-outline';
+          } else if (route.name === 'Wallet') {
+            iconName = focused ? 'wallet' : 'wallet-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -44,38 +67,56 @@ function MainTabNavigator() {
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#6B46C1',
-        tabBarInactiveTintColor: 'gray',
-        headerShown: false,
+        tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
-          backgroundColor: 'rgba(255,255,255,0.95)',
-          borderTopWidth: 0,
-          elevation: 0,
-          shadowOpacity: 0,
-          height: 80,
-          paddingBottom: 20,
-          paddingTop: 10,
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 1,
+          borderTopColor: '#F3F4F6',
+          paddingBottom: 5,
+          paddingTop: 5,
+          height: 60,
         },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+        },
+        headerShown: false,
       })}
     >
       <Tab.Screen 
         name="Home" 
-        component={ModernHomeScreen} 
-        options={{ title: t('nav.home') }}
+        component={ModernHomeScreen}
+        options={{
+          tabBarLabel: t('navigation.home'),
+        }}
       />
       <Tab.Screen 
         name="Chat" 
-        component={ModernChatScreen} 
-        options={{ title: t('nav.chat') }}
+        component={ModernChatScreen}
+        options={{
+          tabBarLabel: t('navigation.chat'),
+        }}
       />
       <Tab.Screen 
         name="Learning" 
-        component={ModernLearningScreen} 
-        options={{ title: t('nav.learning') }}
+        component={ModernLearningScreen}
+        options={{
+          tabBarLabel: t('navigation.learning'),
+        }}
+      />
+      <Tab.Screen 
+        name="Wallet" 
+        component={ModernWalletScreen}
+        options={{
+          tabBarLabel: t('navigation.wallet'),
+        }}
       />
       <Tab.Screen 
         name="Profile" 
-        component={ModernProfileScreen} 
-        options={{ title: t('nav.profile') }}
+        component={ModernProfileScreen}
+        options={{
+          tabBarLabel: t('navigation.profile'),
+        }}
       />
     </Tab.Navigator>
   );
@@ -83,40 +124,17 @@ function MainTabNavigator() {
 
 // 应用内容组件
 function AppContent() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  const checkAuthStatus = async () => {
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      setIsAuthenticated(!!token);
-    } catch (error) {
-      console.error('检查认证状态失败:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { isLoading } = useI18n();
 
   if (isLoading) {
-    return null; // 或者显示加载屏幕
+    return <LoadingScreen />;
   }
 
   return (
     <NavigationContainer>
-      <StatusBar style="light" />
+      <StatusBar style="light" backgroundColor="#6B46C1" />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {isAuthenticated ? (
-          <Stack.Screen name="MainTabs" component={MainTabNavigator} />
-        ) : (
-          <>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Register" component={RegisterScreen} />
-          </>
-        )}
+        <Stack.Screen name="MainTabs" component={MainTabNavigator} />
       </Stack.Navigator>
     </NavigationContainer>
   );
