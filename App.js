@@ -1,7 +1,7 @@
 import React from 'react';
-import ModernMobileApp from './src/components/ModernMobileApp';
+import CultureBridgeMobileApp from './src/components/CultureBridgeMobileApp';
 
 export default function App() {
-  return <ModernMobileApp />;
+  return <CultureBridgeMobileApp />;
 }
 
