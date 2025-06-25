@@ -48,6 +48,9 @@ import {
 import { LanguageProvider, useLanguage, useTranslation } from './hooks/useLanguage.jsx';
 import VoiceCallComponent from './components/VoiceCallComponent.jsx';
 import RealTimeTranslator from './components/RealTimeTranslator.jsx';
+import PhoneAudioTranslator from './components/PhoneAudioTranslator.jsx';
+import ExternalAudioTranslator from './components/ExternalAudioTranslator.jsx';
+import CrossBorderVoiceCall from './components/CrossBorderVoiceCall.jsx';
 import './App.css';
 
 // 导入图片
@@ -604,20 +607,81 @@ const PremiumDiscoverPage = () => {
 // 语音通话页面组件
 const VoiceCallPage = () => {
   const { t } = useTranslation();
+  const [activeFeature, setActiveFeature] = useState('cross-border');
+  
+  const features = [
+    { id: 'cross-border', name: '跨国通话', icon: Phone },
+    { id: 'phone-audio', name: '手机音频', icon: Headphones },
+    { id: 'external-audio', name: '外部音频', icon: Mic },
+    { id: 'real-time', name: '实时翻译', icon: Languages }
+  ];
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 pt-20 pb-32">
       <div className="container mx-auto px-4">
         <div className="max-w-md mx-auto">
-          {/* 语音通话组件 */}
-          <VoiceCallComponent className="mb-6" />
-          
-          {/* 实时翻译器 */}
-          <RealTimeTranslator 
-            sourceLanguage="auto"
-            targetLanguage="en"
-            className="mb-6"
-          />
+          {/* 功能选择器 */}
+          <div className="mb-6">
+            <div className="flex bg-gray-800/50 backdrop-blur-sm rounded-2xl p-2 border border-gray-700">
+              {features.map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <button
+                    key={feature.id}
+                    onClick={() => setActiveFeature(feature.id)}
+                    className={`flex-1 flex flex-col items-center gap-1 p-3 rounded-xl transition-all duration-300 ${
+                      activeFeature === feature.id
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                        : 'text-gray-400 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="text-xs font-medium">{feature.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 功能组件 */}
+          <div className="mb-6">
+            {activeFeature === 'cross-border' && (
+              <CrossBorderVoiceCall 
+                userId="user123"
+                userProfile={{
+                  nativeLanguage: 'zh-CN',
+                  targetLanguage: 'en-US',
+                  country: 'China',
+                  interests: ['文化交流', '语言学习']
+                }}
+                className="mb-6"
+              />
+            )}
+            
+            {activeFeature === 'phone-audio' && (
+              <PhoneAudioTranslator 
+                sourceLanguage="auto"
+                targetLanguage="en-US"
+                className="mb-6"
+              />
+            )}
+            
+            {activeFeature === 'external-audio' && (
+              <ExternalAudioTranslator 
+                defaultSourceLanguage="auto"
+                defaultTargetLanguage="en-US"
+                className="mb-6"
+              />
+            )}
+            
+            {activeFeature === 'real-time' && (
+              <RealTimeTranslator 
+                sourceLanguage="auto"
+                targetLanguage="en"
+                className="mb-6"
+              />
+            )}
+          </div>
           
           {/* 使用说明 */}
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
@@ -626,22 +690,61 @@ const VoiceCallPage = () => {
               功能说明
             </h3>
             <div className="space-y-3 text-gray-300 text-sm">
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-                <p>点击通话按钮开始寻找来自其他国家的用户进行语音交流</p>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
-                <p>实时翻译功能可以将对方的语音自动翻译成您的语言</p>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
-                <p>支持麦克风输入和系统音频捕获，可翻译手机播放的内容</p>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
-                <p>通话过程中可以看到对方的国家信息和文化背景</p>
-              </div>
+              {activeFeature === 'cross-border' && (
+                <>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>点击开始匹配，系统会为您寻找来自其他国家的用户进行语音交流</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>支持实时翻译功能，可以将对方的语音自动翻译成您的语言</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>通话过程中可以看到对方的国家信息和文化背景</p>
+                  </div>
+                </>
+              )}
+              
+              {activeFeature === 'phone-audio' && (
+                <>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>捕获手机播放的音频内容并进行实时翻译</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-red-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>支持视频、音乐、播客等各种音频源的翻译</p>
+                  </div>
+                </>
+              )}
+              
+              {activeFeature === 'external-audio' && (
+                <>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-cyan-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>监听周围环境的音频并进行实时翻译</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-pink-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>可调节灵敏度和噪音降噪设置</p>
+                  </div>
+                </>
+              )}
+              
+              {activeFeature === 'real-time' && (
+                <>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>基础的实时语音翻译功能</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-indigo-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <p>支持多种语言的双向翻译</p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
