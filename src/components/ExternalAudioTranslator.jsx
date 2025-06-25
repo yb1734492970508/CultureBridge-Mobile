@@ -24,7 +24,11 @@ import {
   Waves,
   Target,
   Eye,
-  EyeOff
+  EyeOff,
+  Wifi,
+  WifiOff,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx';
@@ -33,12 +37,14 @@ import { Progress } from '@/components/ui/progress.jsx';
 import { Slider } from '@/components/ui/slider.jsx';
 import { Switch } from '@/components/ui/switch.jsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx';
+import { Alert, AlertDescription } from '@/components/ui/alert.jsx';
 
 const ExternalAudioTranslator = ({ 
   className = '',
   onTranslationUpdate = () => {},
   defaultSourceLanguage = 'auto',
-  defaultTargetLanguage = 'en-US'
+  defaultTargetLanguage = 'en'
 }) => {
   // 状态管理
   const [isListening, setIsListening] = useState(false);
@@ -63,6 +69,9 @@ const ExternalAudioTranslator = ({
   const [listeningDuration, setListeningDuration] = useState(0);
   const [voiceActivity, setVoiceActivity] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState('disconnected');
+  const [error, setError] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   // Refs
   const mediaStreamRef = useRef(null);
@@ -73,22 +82,30 @@ const ExternalAudioTranslator = ({
   const intervalRef = useRef(null);
   const durationTimerRef = useRef(null);
   const sessionRef = useRef(null);
+  const chunkIndexRef = useRef(0);
+  const sessionStartTimeRef = useRef(null);
+
+  // API配置
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+  const API_TOKEN = localStorage.getItem('auth_token');
 
   // 支持的语言列表
   const supportedLanguages = [
     { code: 'auto', name: '自动检测', flag: '🌐' },
-    { code: 'zh-CN', name: '中文(简体)', flag: '🇨🇳' },
-    { code: 'en-US', name: 'English', flag: '🇺🇸' },
-    { code: 'ja-JP', name: '日本語', flag: '🇯🇵' },
-    { code: 'ko-KR', name: '한국어', flag: '🇰🇷' },
-    { code: 'fr-FR', name: 'Français', flag: '🇫🇷' },
-    { code: 'de-DE', name: 'Deutsch', flag: '🇩🇪' },
-    { code: 'es-ES', name: 'Español', flag: '🇪🇸' },
-    { code: 'it-IT', name: 'Italiano', flag: '🇮🇹' },
-    { code: 'pt-PT', name: 'Português', flag: '🇵🇹' },
-    { code: 'ru-RU', name: 'Русский', flag: '🇷🇺' },
-    { code: 'ar-SA', name: 'العربية', flag: '🇸🇦' },
-    { code: 'hi-IN', name: 'हिन्दी', flag: '🇮🇳' }
+    { code: 'zh', name: '中文(简体)', flag: '🇨🇳' },
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'ja', name: '日本語', flag: '🇯🇵' },
+    { code: 'ko', name: '한국어', flag: '🇰🇷' },
+    { code: 'fr', name: 'Français', flag: '🇫🇷' },
+    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+    { code: 'es', name: 'Español', flag: '🇪🇸' },
+    { code: 'it', name: 'Italiano', flag: '🇮🇹' },
+    { code: 'pt', name: 'Português', flag: '🇵🇹' },
+    { code: 'ru', name: 'Русский', flag: '🇷🇺' },
+    { code: 'ar', name: 'العربية', flag: '🇸🇦' },
+    { code: 'hi', name: 'हिन्दी', flag: '🇮🇳' },
+    { code: 'th', name: 'ไทย', flag: '🇹🇭' },
+    { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' }
   ];
 
   // 初始化音频上下文
@@ -100,6 +117,7 @@ const ExternalAudioTranslator = ({
         analyserRef.current.fftSize = 512;
       } catch (error) {
         console.error('音频上下文初始化失败:', error);
+        setError('音频上下文初始化失败');
       }
     };
 
@@ -115,81 +133,121 @@ const ExternalAudioTranslator = ({
       if (durationTimerRef.current) {
         clearInterval(durationTimerRef.current);
       }
+      if (sessionId) {
+        stopSession();
+      }
     };
   }, []);
 
-  // 生成会话ID
-  const generateSessionId = () => {
-    return 'external_audio_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  // 开始翻译会话
+  const startSession = async () => {
+    try {
+      setError(null);
+      setConnectionStatus('connecting');
+
+      const response = await fetch(`${API_BASE_URL}/api/realtime/external-audio/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_TOKEN}`
+        },
+        body: JSON.stringify({
+          source_language: sourceLanguage,
+          target_language: targetLanguage,
+          config: {
+            audio_format: 'wav',
+            sample_rate: 16000,
+            channels: 1,
+            real_time_threshold: 2.0,
+            noise_reduction: noiseReduction
+          }
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSessionId(data.session_id);
+        sessionRef.current = data.session_id;
+        setConnectionStatus('connected');
+        setIsConnected(true);
+        sessionStartTimeRef.current = Date.now();
+        
+        // 开始音频监听
+        await startAudioListening();
+        
+        // 开始计时器
+        startDurationTimer();
+        
+        console.log('外部音频翻译会话已开始:', data.session_id);
+      } else {
+        throw new Error(data.message || '启动会话失败');
+      }
+    } catch (error) {
+      console.error('启动会话失败:', error);
+      setError(error.message);
+      setConnectionStatus('error');
+    }
   };
 
-  // 获取麦克风权限
-  const getMicrophoneStream = async () => {
+  // 停止翻译会话
+  const stopSession = async () => {
     try {
+      if (sessionId) {
+        await fetch(`${API_BASE_URL}/api/realtime/session/${sessionId}/stop`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${API_TOKEN}`
+          }
+        });
+      }
+
+      // 停止音频监听
+      stopAudioListening();
+      
+      // 停止计时器
+      if (durationTimerRef.current) {
+        clearInterval(durationTimerRef.current);
+        durationTimerRef.current = null;
+      }
+      
+      setSessionId(null);
+      sessionRef.current = null;
+      setIsConnected(false);
+      setIsListening(false);
+      setConnectionStatus('disconnected');
+      chunkIndexRef.current = 0;
+      
+      console.log('外部音频翻译会话已停止');
+    } catch (error) {
+      console.error('停止会话失败:', error);
+      setError(error.message);
+    }
+  };
+
+  // 开始音频监听
+  const startAudioListening = async () => {
+    try {
+      // 请求音频权限
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: noiseReduction,
           noiseSuppression: noiseReduction,
           autoGainControl: true,
-          sampleRate: 44100,
-          channelCount: 1
+          sampleRate: 16000
         }
       });
 
-      return stream;
-    } catch (error) {
-      console.error('获取麦克风失败:', error);
-      throw new Error('无法获取麦克风权限，请检查设置');
-    }
-  };
-
-  // 设置音频分析器
-  const setupAudioAnalyser = (stream) => {
-    if (!audioContextRef.current || !analyserRef.current) return;
-
-    const source = audioContextRef.current.createMediaStreamSource(stream);
-    source.connect(analyserRef.current);
-
-    // 开始音频级别监控
-    const updateAudioLevel = () => {
-      const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-      analyserRef.current.getByteFrequencyData(dataArray);
-      
-      const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
-      const normalizedLevel = average / 255;
-      
-      setAudioLevel(normalizedLevel);
-      
-      // 检测语音活动
-      const voiceThreshold = sensitivity * 0.1;
-      const hasVoice = normalizedLevel > voiceThreshold;
-      setVoiceActivity(hasVoice);
-      
-      // 更新背景噪音级别
-      if (!hasVoice) {
-        setBackgroundNoise(prev => prev * 0.9 + normalizedLevel * 0.1);
-      }
-    };
-
-    intervalRef.current = setInterval(updateAudioLevel, 100);
-  };
-
-  // 启动外部音频监听
-  const startListening = async () => {
-    try {
-      setIsProcessing(true);
-      
-      // 获取麦克风流
-      const stream = await getMicrophoneStream();
       mediaStreamRef.current = stream;
-      setupAudioAnalyser(stream);
 
-      // 设置媒体录制器
+      // 连接到音频分析器
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      source.connect(analyserRef.current);
+
+      // 创建媒体记录器
       mediaRecorderRef.current = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=opus'
       });
-
-      audioChunksRef.current = [];
 
       mediaRecorderRef.current.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -197,688 +255,529 @@ const ExternalAudioTranslator = ({
         }
       };
 
-      mediaRecorderRef.current.onstop = async () => {
+      mediaRecorderRef.current.onstop = () => {
         if (audioChunksRef.current.length > 0) {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          await processAudioBlob(audioBlob);
-          audioChunksRef.current = [];
+          processAudioChunks();
         }
       };
 
-      // 生成新的会话ID
-      const newSessionId = generateSessionId();
-      setSessionId(newSessionId);
-      sessionRef.current = newSessionId;
-
-      // 启动后端监听
-      await startBackendListening(newSessionId);
-
       // 开始录制
-      if (continuousMode) {
-        mediaRecorderRef.current.start(3000); // 每3秒处理一次
-      }
-
-      // 开始计时
-      durationTimerRef.current = setInterval(() => {
-        setListeningDuration(prev => prev + 1);
-      }, 1000);
-
+      mediaRecorderRef.current.start();
       setIsListening(true);
-      setIsProcessing(false);
+
+      // 开始音频级别监控
+      startAudioLevelMonitoring();
+
+      // 设置定时处理音频块
+      intervalRef.current = setInterval(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.stop();
+          mediaRecorderRef.current.start();
+        }
+      }, 2000); // 每2秒处理一次（外部音频更频繁）
 
     } catch (error) {
-      console.error('启动外部音频监听失败:', error);
-      setIsProcessing(false);
-      alert(error.message);
+      console.error('音频监听失败:', error);
+      setError('无法访问麦克风');
     }
   };
 
-  // 停止外部音频监听
-  const stopListening = async () => {
+  // 停止音频监听
+  const stopAudioListening = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+    }
+
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    setIsListening(false);
+    setAudioLevel(0);
+    setVoiceActivity(false);
+  };
+
+  // 处理音频块
+  const processAudioChunks = async () => {
+    if (!sessionId || audioChunksRef.current.length === 0) {
+      return;
+    }
+
     try {
+      const startTime = Date.now();
       setIsProcessing(true);
+      
+      // 合并音频块
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      audioChunksRef.current = [];
 
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.stop();
-      }
+      // 转换为base64
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(track => track.stop());
-        mediaStreamRef.current = null;
-      }
-
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-
-      if (durationTimerRef.current) {
-        clearInterval(durationTimerRef.current);
-        durationTimerRef.current = null;
-      }
-
-      if (sessionRef.current) {
-        await stopBackendListening(sessionRef.current);
-      }
-
-      setIsListening(false);
-      setIsProcessing(false);
-      setAudioLevel(0);
-      setVoiceActivity(false);
-      setSessionId(null);
-      sessionRef.current = null;
-      setListeningDuration(0);
-
-    } catch (error) {
-      console.error('停止外部音频监听失败:', error);
-      setIsProcessing(false);
-    }
-  };
-
-  // 启动后端监听
-  const startBackendListening = async (sessionId) => {
-    try {
-      const response = await fetch('/api/external-audio/start-listening', {
+      // 发送到后端处理
+      const response = await fetch(`${API_BASE_URL}/api/realtime/audio/process`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_TOKEN}`
         },
         body: JSON.stringify({
-          sessionId,
-          sourceLanguage,
-          targetLanguage,
-          sensitivity,
-          noiseReduction,
-          autoTranslate,
-          continuousMode,
-          maxDuration: 1800000 // 30分钟
+          session_id: sessionId,
+          audio_data: base64Audio,
+          chunk_index: chunkIndexRef.current++
         })
       });
 
       const data = await response.json();
-      if (!data.success) {
-        throw new Error(data.error);
-      }
-
-    } catch (error) {
-      console.error('启动后端监听失败:', error);
-      throw error;
-    }
-  };
-
-  // 停止后端监听
-  const stopBackendListening = async (sessionId) => {
-    try {
-      const response = await fetch('/api/external-audio/stop-listening', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ sessionId })
-      });
-
-      const data = await response.json();
-      if (data.success && data.data.stats) {
-        setTranslationCount(data.data.stats.translationCount);
-      }
-
-    } catch (error) {
-      console.error('停止后端监听失败:', error);
-    }
-  };
-
-  // 处理音频数据
-  const processAudioBlob = async (audioBlob) => {
-    if (!autoTranslate || !sessionRef.current) return;
-
-    try {
-      const startTime = Date.now();
-
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'audio.webm');
-      formData.append('sessionId', sessionRef.current);
-      formData.append('sourceLanguage', sourceLanguage);
-      formData.append('targetLanguage', targetLanguage);
-      formData.append('enhanceAudio', noiseReduction.toString());
-      formData.append('detectSpeakers', 'true');
-
-      const response = await fetch('/api/external-audio/process', {
-        method: 'POST',
-        body: formData
-      });
-
-      const data = await response.json();
       
-      if (data.success && data.data.status === 'success') {
-        const result = data.data;
-        setCurrentText(result.transcription.text);
-        setTranslatedText(result.translation.text);
-        setAudioQuality(result.audio.quality);
-        
-        const endTime = Date.now();
-        setProcessingTime(endTime - startTime);
-
-        // 更新说话人信息
-        if (result.transcription.speakers) {
-          setDetectedSpeakers(result.transcription.speakers);
-        }
-
-        // 添加到历史记录
-        const historyItem = {
-          id: Date.now(),
-          timestamp: new Date().toISOString(),
-          original: result.transcription.text,
-          translated: result.translation.text,
-          sourceLanguage: result.transcription.language,
-          targetLanguage: result.translation.language,
-          confidence: result.translation.confidence,
-          processingTime: endTime - startTime,
-          audioQuality: result.audio.quality,
-          speakers: result.transcription.speakers || [],
-          context: result.translation.context || 'general'
-        };
-
-        setTranslationHistory(prev => [historyItem, ...prev.slice(0, 19)]); // 保留最近20条
+      if (data.success) {
+        const processingTime = Date.now() - startTime;
+        setProcessingTime(processingTime);
         setTranslationCount(prev => prev + 1);
-
-        // 回调通知
-        onTranslationUpdate(historyItem);
-
-      } else if (data.data && data.data.status === 'no_voice_detected') {
-        // 没有检测到语音，这是正常情况
-        console.log('未检测到语音内容');
+      } else {
+        console.error('音频处理失败:', data.message);
       }
 
     } catch (error) {
-      console.error('处理外部音频失败:', error);
+      console.error('处理音频块失败:', error);
+      setError('音频处理失败');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  // 手动录制
-  const startManualRecording = async () => {
-    if (!mediaStreamRef.current) {
-      await startListening();
-    }
-
-    if (mediaRecorderRef.current) {
-      audioChunksRef.current = [];
-      mediaRecorderRef.current.start();
-    }
+  // 开始音频级别监控
+  const startAudioLevelMonitoring = () => {
+    const updateAudioLevel = () => {
+      if (analyserRef.current) {
+        const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+        analyserRef.current.getByteFrequencyData(dataArray);
+        
+        const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
+        const level = average / 255;
+        
+        setAudioLevel(level);
+        
+        // 检测语音活动
+        const voiceThreshold = sensitivity;
+        setVoiceActivity(level > voiceThreshold);
+        
+        // 估算背景噪音
+        if (level < 0.1) {
+          setBackgroundNoise(level);
+        }
+        
+        // 评估音频质量
+        if (level > 0.7) {
+          setAudioQuality('excellent');
+        } else if (level > 0.4) {
+          setAudioQuality('good');
+        } else if (level > 0.2) {
+          setAudioQuality('fair');
+        } else {
+          setAudioQuality('poor');
+        }
+      }
+      
+      if (isListening) {
+        requestAnimationFrame(updateAudioLevel);
+      }
+    };
+    
+    updateAudioLevel();
   };
 
-  const stopManualRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-    }
+  // 开始计时器
+  const startDurationTimer = () => {
+    durationTimerRef.current = setInterval(() => {
+      setListeningDuration(prev => prev + 1);
+    }, 1000);
   };
 
-  // 切换监听模式
+  // 切换监听状态
   const toggleListening = async () => {
     if (isListening) {
-      await stopListening();
+      await stopSession();
     } else {
-      await startListening();
+      await startSession();
     }
   };
 
-  // 更新设置
-  const updateSettings = async (newSettings) => {
-    if (!sessionRef.current) return;
+  // 渲染连接状态指示器
+  const renderConnectionStatus = () => {
+    const statusConfig = {
+      disconnected: { icon: WifiOff, color: 'text-gray-500', text: '未连接' },
+      connecting: { icon: RefreshCw, color: 'text-yellow-500', text: '连接中...' },
+      connected: { icon: Wifi, color: 'text-green-500', text: '已连接' },
+      error: { icon: AlertCircle, color: 'text-red-500', text: '连接错误' }
+    };
 
-    try {
-      const response = await fetch(`/api/external-audio/listener/${sessionRef.current}/settings`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newSettings)
-      });
+    const config = statusConfig[connectionStatus];
+    const Icon = config.icon;
 
-      const data = await response.json();
-      if (!data.success) {
-        console.error('更新设置失败:', data.error);
-      }
-
-    } catch (error) {
-      console.error('更新设置失败:', error);
-    }
+    return (
+      <div className=\"flex items-center space-x-2\">
+        <Icon className={`h-4 w-4 ${config.color} ${connectionStatus === 'connecting' ? 'animate-spin' : ''}`} />
+        <span className={`text-sm ${config.color}`}>{config.text}</span>
+      </div>
+    );
   };
 
-  // 格式化时间
-  const formatDuration = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
+  // 渲染音频质量指示器
+  const renderAudioQuality = () => {
+    const qualityConfig = {
+      excellent: { color: 'text-green-500', text: '优秀' },
+      good: { color: 'text-blue-500', text: '良好' },
+      fair: { color: 'text-yellow-500', text: '一般' },
+      poor: { color: 'text-red-500', text: '较差' }
+    };
 
-  // 获取音频质量颜色
-  const getQualityColor = (quality) => {
-    switch (quality) {
-      case 'excellent': return 'text-green-400';
-      case 'good': return 'text-blue-400';
-      case 'fair': return 'text-yellow-400';
-      case 'poor': return 'text-red-400';
-      default: return 'text-gray-400';
-    }
+    const config = qualityConfig[audioQuality];
+
+    return (
+      <Badge variant={audioQuality === 'excellent' || audioQuality === 'good' ? 'default' : 'secondary'}>
+        <span className={config.color}>{config.text}</span>
+      </Badge>
+    );
   };
 
   return (
-    <div className={`bg-gray-900/95 backdrop-blur-sm rounded-2xl border border-gray-700 ${className}`}>
-      {/* 标题栏 */}
-      <div className="p-6 border-b border-gray-700">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-r from-green-500 to-teal-500 rounded-lg">
-              <Ear className="w-5 h-5 text-white" />
+    <div className={`w-full max-w-4xl mx-auto p-4 space-y-6 ${className}`}>
+      {/* 标题和状态 */}
+      <Card>
+        <CardHeader>
+          <div className=\"flex items-center justify-between\">
+            <div className=\"flex items-center space-x-3\">
+              <div className=\"p-2 bg-green-100 rounded-lg\">
+                <Ear className=\"h-6 w-6 text-green-600\" />
+              </div>
+              <div>
+                <CardTitle>外部音频实时翻译</CardTitle>
+                <CardDescription>
+                  监听周围环境音频并实时翻译
+                </CardDescription>
+              </div>
             </div>
-            <div>
-              <h3 className="text-white font-semibold">外部音频实时翻译</h3>
-              <p className="text-gray-400 text-sm">
-                监听周围环境音频并实时翻译
-              </p>
+            {renderConnectionStatus()}
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* 错误提示 */}
+      {error && (
+        <Alert variant=\"destructive\">
+          <AlertCircle className=\"h-4 w-4\" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* 语言选择 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className=\"flex items-center space-x-2\">
+            <Languages className=\"h-5 w-5\" />
+            <span>语言设置</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className=\"space-y-4\">
+          <div className=\"grid grid-cols-1 md:grid-cols-2 gap-4\">
+            <div className=\"space-y-2\">
+              <label className=\"text-sm font-medium\">源语言</label>
+              <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {supportedLanguages.map((lang) => (
+                    <SelectItem key={lang.code} value={lang.code}>
+                      <span className=\"flex items-center space-x-2\">
+                        <span>{lang.flag}</span>
+                        <span>{lang.name}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className=\"space-y-2\">
+              <label className=\"text-sm font-medium\">目标语言</label>
+              <Select value={targetLanguage} onValueChange={setTargetLanguage}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {supportedLanguages.filter(lang => lang.code !== 'auto').map((lang) => (
+                    <SelectItem key={lang.code} value={lang.code}>
+                      <span className=\"flex items-center space-x-2\">
+                        <span>{lang.flag}</span>
+                        <span>{lang.name}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          
-          <div className="flex items-center gap-2">
-            {isListening && (
-              <Badge variant="default" className="bg-green-500">
-                <Activity className="w-3 h-3 mr-1" />
-                监听中
-              </Badge>
-            )}
+        </CardContent>
+      </Card>
+
+      {/* 控制面板 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className=\"flex items-center space-x-2\">
+            <Activity className=\"h-5 w-5\" />
+            <span>监听控制</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className=\"space-y-6\">
+          {/* 主控制按钮 */}
+          <div className=\"flex justify-center\">
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowAdvanced(!showAdvanced)}
+              onClick={toggleListening}
+              size=\"lg\"
+              className={`px-8 py-4 text-lg ${
+                isListening 
+                  ? 'bg-red-500 hover:bg-red-600' 
+                  : 'bg-green-500 hover:bg-green-600'
+              }`}
+              disabled={connectionStatus === 'connecting'}
             >
-              <Settings className="w-4 h-4" />
+              {isListening ? (
+                <>
+                  <Square className=\"h-5 w-5 mr-2\" />
+                  停止监听
+                </>
+              ) : (
+                <>
+                  <Play className=\"h-5 w-5 mr-2\" />
+                  开始监听
+                </>
+              )}
             </Button>
           </div>
-        </div>
-      </div>
 
-      <div className="p-6">
-        <Tabs defaultValue="main" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="main">主控制</TabsTrigger>
-            <TabsTrigger value="settings">设置</TabsTrigger>
-            <TabsTrigger value="stats">统计</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="main" className="space-y-6">
-            {/* 语言设置 */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">源语言</label>
-                <select
-                  value={sourceLanguage}
-                  onChange={(e) => {
-                    setSourceLanguage(e.target.value);
-                    if (isListening) {
-                      updateSettings({ sourceLanguage: e.target.value });
-                    }
-                  }}
-                  className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white"
-                  disabled={isListening}
-                >
-                  {supportedLanguages.map(lang => (
-                    <option key={lang.code} value={lang.code}>
-                      {lang.flag} {lang.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">目标语言</label>
-                <select
-                  value={targetLanguage}
-                  onChange={(e) => {
-                    setTargetLanguage(e.target.value);
-                    if (isListening) {
-                      updateSettings({ targetLanguage: e.target.value });
-                    }
-                  }}
-                  className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white"
-                >
-                  {supportedLanguages.filter(lang => lang.code !== 'auto').map(lang => (
-                    <option key={lang.code} value={lang.code}>
-                      {lang.flag} {lang.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* 音频级别和语音活动指示器 */}
-            {isListening && (
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-300">音频级别</span>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={voiceActivity ? 'default' : 'secondary'}>
-                        {voiceActivity ? '检测到语音' : '静音'}
+          {/* 音频状态指示器 */}
+          {isListening && (
+            <div className=\"space-y-4\">
+              {/* 音频级别 */}
+              <div className=\"space-y-2\">
+                <div className=\"flex items-center justify-between\">
+                  <span className=\"text-sm font-medium\">音频级别</span>
+                  <div className=\"flex items-center space-x-2\">
+                    {voiceActivity && (
+                      <Badge variant=\"default\">
+                        <Waves className=\"h-3 w-3 mr-1\" />
+                        检测到语音
                       </Badge>
-                      <Badge variant="outline" className={getQualityColor(audioQuality)}>
-                        {audioQuality}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Volume2 className="w-4 h-4 text-gray-400" />
-                    <div className="flex-1 bg-gray-700 rounded-full h-3">
-                      <div 
-                        className={`h-3 rounded-full transition-all duration-100 ${
-                          voiceActivity 
-                            ? 'bg-gradient-to-r from-green-500 to-blue-500' 
-                            : 'bg-gradient-to-r from-gray-500 to-gray-600'
-                        }`}
-                        style={{ width: `${audioLevel * 100}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-gray-400 w-8">
-                      {Math.round(audioLevel * 100)}%
-                    </span>
+                    )}
+                    {renderAudioQuality()}
                   </div>
                 </div>
-
-                {/* 背景噪音级别 */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-300">背景噪音</span>
-                    <span className="text-xs text-gray-500">
-                      {Math.round(backgroundNoise * 100)}%
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Waves className="w-4 h-4 text-gray-400" />
-                    <div className="flex-1 bg-gray-700 rounded-full h-2">
-                      <div 
-                        className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${backgroundNoise * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 主控制按钮 */}
-            <div className="flex justify-center">
-              <Button
-                onClick={toggleListening}
-                size="lg"
-                className={`w-20 h-20 rounded-full ${
-                  isListening
-                    ? 'bg-red-500 hover:bg-red-600'
-                    : 'bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600'
-                }`}
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <Activity className="w-8 h-8 animate-spin" />
-                ) : isListening ? (
-                  <Square className="w-8 h-8" />
-                ) : (
-                  <Ear className="w-8 h-8" />
-                )}
-              </Button>
-            </div>
-
-            {/* 状态信息 */}
-            {isListening && (
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="bg-gray-800 rounded-lg p-3">
-                  <Clock className="w-5 h-5 mx-auto mb-1 text-blue-400" />
-                  <div className="text-sm text-gray-300">监听时长</div>
-                  <div className="text-lg font-semibold text-white">
-                    {formatDuration(listeningDuration)}
-                  </div>
-                </div>
-                
-                <div className="bg-gray-800 rounded-lg p-3">
-                  <Target className="w-5 h-5 mx-auto mb-1 text-green-400" />
-                  <div className="text-sm text-gray-300">翻译次数</div>
-                  <div className="text-lg font-semibold text-white">
-                    {translationCount}
-                  </div>
-                </div>
-                
-                <div className="bg-gray-800 rounded-lg p-3">
-                  <Users className="w-5 h-5 mx-auto mb-1 text-purple-400" />
-                  <div className="text-sm text-gray-300">检测说话人</div>
-                  <div className="text-lg font-semibold text-white">
-                    {detectedSpeakers.length}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 翻译结果 */}
-            {(currentText || translatedText) && (
-              <div className="space-y-4">
-                {currentText && (
-                  <div className="bg-gray-800 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-gray-400 uppercase">原文</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">{sourceLanguage}</span>
-                        {detectedSpeakers.length > 0 && (
-                          <Badge variant="outline" className="text-xs">
-                            <Users className="w-3 h-3 mr-1" />
-                            {detectedSpeakers.length}人
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-white">{currentText}</p>
-                  </div>
-                )}
-
-                {translatedText && (
-                  <div className="bg-gradient-to-r from-green-900/50 to-teal-900/50 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-gray-400 uppercase">译文</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">{targetLanguage}</span>
-                        {processingTime > 0 && (
-                          <Badge variant="outline" className="text-xs">
-                            <Clock className="w-3 h-3 mr-1" />
-                            {processingTime}ms
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-white">{translatedText}</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="settings" className="space-y-6">
-            {/* 基础设置 */}
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-300">灵敏度</span>
-                  <span className="text-xs text-gray-500">{Math.round(sensitivity * 100)}%</span>
-                </div>
-                <Slider
-                  value={[sensitivity]}
-                  onValueChange={(value) => {
-                    setSensitivity(value[0]);
-                    if (isListening) {
-                      updateSettings({ sensitivity: value[0] });
-                    }
-                  }}
-                  max={1}
-                  step={0.1}
-                  className="w-full"
-                />
+                <Progress value={audioLevel * 100} className=\"h-2\" />
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-300">噪音降噪</span>
+              {/* 背景噪音 */}
+              <div className=\"space-y-2\">
+                <div className=\"flex items-center justify-between\">
+                  <span className=\"text-sm font-medium\">背景噪音</span>
+                  <span className=\"text-sm text-gray-500\">
+                    {(backgroundNoise * 100).toFixed(1)}%
+                  </span>
                 </div>
-                <Switch
-                  checked={noiseReduction}
-                  onCheckedChange={(checked) => {
-                    setNoiseReduction(checked);
-                    if (isListening) {
-                      updateSettings({ noiseReduction: checked });
-                    }
-                  }}
-                  disabled={isListening}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-300">自动翻译</span>
-                </div>
-                <Switch
-                  checked={autoTranslate}
-                  onCheckedChange={(checked) => {
-                    setAutoTranslate(checked);
-                    if (isListening) {
-                      updateSettings({ autoTranslate: checked });
-                    }
-                  }}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Radio className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-300">连续模式</span>
-                </div>
-                <Switch
-                  checked={continuousMode}
-                  onCheckedChange={setContinuousMode}
-                  disabled={isListening}
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-300">播放音量</span>
-                  <span className="text-xs text-gray-500">{Math.round(volume * 100)}%</span>
-                </div>
-                <Slider
-                  value={[volume]}
-                  onValueChange={(value) => setVolume(value[0])}
-                  max={1}
-                  step={0.1}
-                  className="w-full"
-                />
+                <Progress value={backgroundNoise * 100} className=\"h-1\" />
               </div>
             </div>
-          </TabsContent>
+          )}
 
-          <TabsContent value="stats" className="space-y-6">
-            {/* 统计信息 */}
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-300">总翻译次数</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-white">{translationCount}</div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-300">平均处理时间</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-white">
-                    {translationHistory.length > 0 
-                      ? Math.round(translationHistory.reduce((sum, item) => sum + item.processingTime, 0) / translationHistory.length)
-                      : 0}ms
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-300">音频质量分布</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-1">
-                    {['excellent', 'good', 'fair', 'poor'].map(quality => {
-                      const count = translationHistory.filter(item => item.audioQuality === quality).length;
-                      const percentage = translationHistory.length > 0 ? (count / translationHistory.length) * 100 : 0;
-                      return (
-                        <div key={quality} className="flex items-center justify-between text-xs">
-                          <span className={`capitalize ${getQualityColor(quality)}`}>{quality}</span>
-                          <span className="text-gray-400">{Math.round(percentage)}%</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-300">检测到的说话人</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-white">{detectedSpeakers.length}</div>
-                  {detectedSpeakers.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                      {detectedSpeakers.slice(0, 3).map((speaker, index) => (
-                        <div key={speaker.id || index} className="text-xs text-gray-400">
-                          说话人 {index + 1}: {speaker.gender || '未知'} ({Math.round(speaker.confidence * 100)}%)
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+          {/* 设置选项 */}
+          <div className=\"grid grid-cols-1 md:grid-cols-2 gap-4\">
+            <div className=\"space-y-2\">
+              <label className=\"text-sm font-medium\">语音检测灵敏度</label>
+              <Slider
+                value={[sensitivity]}
+                onValueChange={(value) => setSensitivity(value[0])}
+                max={1}
+                min={0}
+                step={0.1}
+                className=\"w-full\"
+              />
             </div>
+            <div className=\"space-y-2\">
+              <label className=\"text-sm font-medium\">音量</label>
+              <Slider
+                value={[volume]}
+                onValueChange={(value) => setVolume(value[0])}
+                max={1}
+                min={0}
+                step={0.1}
+                className=\"w-full\"
+              />
+            </div>
+          </div>
 
-            {/* 翻译历史 */}
-            {translationHistory.length > 0 && (
+          {/* 开关选项 */}
+          <div className=\"flex flex-wrap gap-4\">
+            <div className=\"flex items-center space-x-2\">
+              <Switch
+                checked={noiseReduction}
+                onCheckedChange={setNoiseReduction}
+              />
+              <label className=\"text-sm\">噪音抑制</label>
+            </div>
+            <div className=\"flex items-center space-x-2\">
+              <Switch
+                checked={autoTranslate}
+                onCheckedChange={setAutoTranslate}
+              />
+              <label className=\"text-sm\">自动翻译</label>
+            </div>
+            <div className=\"flex items-center space-x-2\">
+              <Switch
+                checked={continuousMode}
+                onCheckedChange={setContinuousMode}
+              />
+              <label className=\"text-sm\">连续模式</label>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 翻译结果 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className=\"flex items-center space-x-2\">
+            <Zap className=\"h-5 w-5\" />
+            <span>实时翻译</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className=\"space-y-4\">
+          {/* 原文 */}
+          <div className=\"p-4 bg-gray-50 rounded-lg\">
+            <div className=\"flex items-center justify-between mb-2\">
+              <span className=\"text-sm font-medium text-gray-600\">检测到的语音</span>
+              {isProcessing && (
+                <Badge variant=\"secondary\">
+                  <RefreshCw className=\"h-3 w-3 mr-1 animate-spin\" />
+                  处理中...
+                </Badge>
+              )}
+            </div>
+            <p className=\"text-gray-800\">
+              {currentText || '等待语音输入...'}
+            </p>
+          </div>
+
+          {/* 译文 */}
+          <div className=\"p-4 bg-green-50 rounded-lg\">
+            <div className=\"flex items-center justify-between mb-2\">
+              <span className=\"text-sm font-medium text-green-600\">翻译结果</span>
+              {translatedText && (
+                <Button variant=\"ghost\" size=\"sm\">
+                  <Volume2 className=\"h-4 w-4\" />
+                </Button>
+              )}
+            </div>
+            <p className=\"text-green-800\">
+              {translatedText || '翻译结果将在这里显示...'}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 统计信息 */}
+      {sessionId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className=\"flex items-center space-x-2\">
+              <BarChart3 className=\"h-5 w-5\" />
+              <span>监听统计</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className=\"grid grid-cols-2 md:grid-cols-4 gap-4 text-center\">
               <div>
-                <h4 className="text-sm font-medium text-gray-300 mb-3">最近翻译历史</h4>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {translationHistory.slice(0, 5).map(item => (
-                    <div key={item.id} className="bg-gray-800 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-gray-400">
-                          {new Date(item.timestamp).toLocaleTimeString()}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={`text-xs ${getQualityColor(item.audioQuality)}`}>
-                            {item.audioQuality}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {item.processingTime}ms
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="text-sm text-white mb-1">{item.original}</div>
-                      <div className="text-sm text-green-300">{item.translated}</div>
-                      {item.speakers && item.speakers.length > 0 && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          说话人: {item.speakers.length}人
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                <div className=\"text-2xl font-bold text-green-600\">{translationCount}</div>
+                <div className=\"text-sm text-gray-600\">翻译次数</div>
               </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
+              <div>
+                <div className=\"text-2xl font-bold text-blue-600\">
+                  {Math.floor(listeningDuration / 60)}:{(listeningDuration % 60).toString().padStart(2, '0')}
+                </div>
+                <div className=\"text-sm text-gray-600\">监听时长</div>
+              </div>
+              <div>
+                <div className=\"text-2xl font-bold text-purple-600\">
+                  {Math.round(processingTime)}ms
+                </div>
+                <div className=\"text-sm text-gray-600\">处理时间</div>
+              </div>
+              <div>
+                <div className=\"text-2xl font-bold text-orange-600\">{audioQuality}</div>
+                <div className=\"text-sm text-gray-600\">音频质量</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 高级设置 */}
+      <Card>
+        <CardHeader>
+          <div className=\"flex items-center justify-between\">
+            <CardTitle className=\"flex items-center space-x-2\">
+              <Settings className=\"h-5 w-5\" />
+              <span>高级设置</span>
+            </CardTitle>
+            <Button
+              variant=\"ghost\"
+              size=\"sm\"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+            >
+              {showAdvanced ? <EyeOff className=\"h-4 w-4\" /> : <Eye className=\"h-4 w-4\" />}
+            </Button>
+          </div>
+        </CardHeader>
+        {showAdvanced && (
+          <CardContent className=\"space-y-4\">
+            <div className=\"grid grid-cols-1 md:grid-cols-2 gap-4\">
+              <div className=\"space-y-2\">
+                <label className=\"text-sm font-medium\">音频采样率</label>
+                <Select defaultValue=\"16000\">
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value=\"8000\">8 kHz</SelectItem>
+                    <SelectItem value=\"16000\">16 kHz</SelectItem>
+                    <SelectItem value=\"44100\">44.1 kHz</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className=\"space-y-2\">
+                <label className=\"text-sm font-medium\">处理间隔</label>
+                <Select defaultValue=\"2000\">
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value=\"1000\">1 秒</SelectItem>
+                    <SelectItem value=\"2000\">2 秒</SelectItem>
+                    <SelectItem value=\"3000\">3 秒</SelectItem>
+                    <SelectItem value=\"5000\">5 秒</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        )}
+      </Card>
     </div>
   );
 };
