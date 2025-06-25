@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import '../styles/premium.css';
+import '../styles/ultra-premium.css';
 
 const ExternalAudioTranslator = () => {
   const [isListening, setIsListening] = useState(false);
@@ -13,6 +13,7 @@ const ExternalAudioTranslator = () => {
   const [error, setError] = useState(null);
   const [sensitivity, setSensitivity] = useState(50);
   const [noiseReduction, setNoiseReduction] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
   
   const mediaRecorderRef = useRef(null);
   const audioContextRef = useRef(null);
@@ -148,11 +149,9 @@ const ExternalAudioTranslator = () => {
     try {
       setError(null);
       
-      // 启动会话
       const newSessionId = await startSession();
       if (!newSessionId) return;
 
-      // 获取音频流
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
@@ -162,7 +161,6 @@ const ExternalAudioTranslator = () => {
         } 
       });
 
-      // 设置音频上下文用于监控音频级别
       audioContextRef.current = new AudioContext();
       analyserRef.current = audioContextRef.current.createAnalyser();
       const source = audioContextRef.current.createMediaStreamSource(stream);
@@ -170,10 +168,8 @@ const ExternalAudioTranslator = () => {
       analyserRef.current.fftSize = 512;
       analyserRef.current.smoothingTimeConstant = 0.8;
 
-      // 开始监控音频级别
       monitorAudioLevel();
 
-      // 设置媒体录制器
       mediaRecorderRef.current = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=opus'
       });
@@ -184,14 +180,12 @@ const ExternalAudioTranslator = () => {
       mediaRecorderRef.current.ondataavailable = async (event) => {
         if (event.data.size > 0 && audioLevel > sensitivity / 2) {
           chunksRef.current.push(event.data);
-          
-          // 只有在检测到足够音频级别时才处理
           const audioBlob = new Blob([event.data], { type: 'audio/webm' });
           await processAudioChunk(audioBlob, newSessionId);
         }
       };
 
-      mediaRecorderRef.current.start(1500); // 每1.5秒收集一次音频
+      mediaRecorderRef.current.start(1500);
       setIsListening(true);
 
     } catch (error) {
@@ -293,7 +287,7 @@ const ExternalAudioTranslator = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `外部音频翻译_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `环境音频翻译_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -308,80 +302,72 @@ const ExternalAudioTranslator = () => {
   }, []);
 
   return (
-    <div className="premium-container">
-      <div className="glass-card fade-in" style={{ margin: '1rem', padding: '2rem' }}>
-        {/* 标题区域 */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 className="gradient-text" style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>
-            🎤 外部音频翻译
-          </h1>
-          <p style={{ color: 'var(--dark-text-secondary)', fontSize: '1rem' }}>
+    <div className="slide-up">
+      {/* Hero Section */}
+      <div className="card mb-8">
+        <div className="card-content text-center">
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎤</div>
+          <h2 className="heading-2 mb-2">环境音频翻译</h2>
+          <p className="text-caption mb-4">
             实时监听并翻译周围环境的音频内容
           </p>
-        </div>
-
-        {/* 连接状态 */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-          <div className={`status-indicator ${connectionStatus === 'connected' ? 'online' : connectionStatus === 'error' ? 'busy' : 'offline'}`}></div>
-          <span style={{ fontSize: '0.9rem', color: 'var(--dark-text-secondary)' }}>
-            {connectionStatus === 'connected' ? '已连接' : 
-             connectionStatus === 'connecting' ? '连接中...' :
-             connectionStatus === 'error' ? '连接错误' : '未连接'}
-          </span>
-        </div>
-
-        {/* 设置面板 */}
-        <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-          <h3 style={{ marginBottom: '1rem', color: 'var(--dark-text)' }}>⚙️ 监听设置</h3>
           
-          {/* 语言选择 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--dark-text-secondary)' }}>
-                源语言
-              </label>
+          {/* Connection Status */}
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <div className={`status-dot ${
+              connectionStatus === 'connected' ? 'online' : 
+              connectionStatus === 'error' ? 'error' : 'offline'
+            }`}></div>
+            <span className="text-small">
+              {connectionStatus === 'connected' ? '已连接' : 
+               connectionStatus === 'connecting' ? '连接中...' :
+               connectionStatus === 'error' ? '连接错误' : '未连接'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Settings */}
+      <div className="card mb-6">
+        <div className="card-header">
+          <div className="flex justify-between items-center">
+            <h3 className="heading-3">语言设置</h3>
+            <button 
+              className="btn btn-ghost btn-sm"
+              onClick={() => setShowSettings(!showSettings)}
+            >
+              {showSettings ? '收起' : '高级设置'}
+            </button>
+          </div>
+        </div>
+        <div className="card-content">
+          <div className="flex gap-4 mb-4">
+            <div className="form-group flex-1">
+              <label className="form-label">源语言</label>
               <select 
                 value={sourceLanguage} 
                 onChange={(e) => setSourceLanguage(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  color: 'var(--dark-text)',
-                  fontSize: '1rem'
-                }}
+                className="form-select"
                 disabled={isListening}
               >
                 {languages.map(lang => (
-                  <option key={lang.code} value={lang.code} style={{ background: 'var(--dark-surface)' }}>
+                  <option key={lang.code} value={lang.code}>
                     {lang.flag} {lang.name}
                   </option>
                 ))}
               </select>
             </div>
             
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--dark-text-secondary)' }}>
-                目标语言
-              </label>
+            <div className="form-group flex-1">
+              <label className="form-label">目标语言</label>
               <select 
                 value={targetLanguage} 
                 onChange={(e) => setTargetLanguage(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  color: 'var(--dark-text)',
-                  fontSize: '1rem'
-                }}
+                className="form-select"
                 disabled={isListening}
               >
                 {languages.filter(lang => lang.code !== 'auto').map(lang => (
-                  <option key={lang.code} value={lang.code} style={{ background: 'var(--dark-surface)' }}>
+                  <option key={lang.code} value={lang.code}>
                     {lang.flag} {lang.name}
                   </option>
                 ))}
@@ -389,256 +375,330 @@ const ExternalAudioTranslator = () => {
             </div>
           </div>
 
-          {/* 灵敏度设置 */}
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--dark-text-secondary)' }}>
-              音频灵敏度: {sensitivity}%
-            </label>
-            <input
-              type="range"
-              min="10"
-              max="90"
-              value={sensitivity}
-              onChange={(e) => setSensitivity(parseInt(e.target.value))}
-              disabled={isListening}
-              style={{
-                width: '100%',
-                height: '6px',
-                borderRadius: '3px',
-                background: 'rgba(255, 255, 255, 0.2)',
-                outline: 'none'
-              }}
-            />
-          </div>
+          {/* Advanced Settings */}
+          {showSettings && (
+            <div className="scale-in" style={{ 
+              borderTop: '1px solid var(--border-light)',
+              paddingTop: 'var(--space-4)',
+              marginTop: 'var(--space-4)'
+            }}>
+              <div className="form-group">
+                <label className="form-label">
+                  音频灵敏度: {sensitivity}%
+                </label>
+                <input
+                  type="range"
+                  min="10"
+                  max="90"
+                  value={sensitivity}
+                  onChange={(e) => setSensitivity(parseInt(e.target.value))}
+                  disabled={isListening}
+                  className="w-full"
+                  style={{
+                    height: '6px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--bg-tertiary)',
+                    outline: 'none',
+                    appearance: 'none'
+                  }}
+                />
+                <div className="flex justify-between text-small mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                  <span>低</span>
+                  <span>高</span>
+                </div>
+              </div>
 
-          {/* 噪音降低 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <input
-              type="checkbox"
-              id="noiseReduction"
-              checked={noiseReduction}
-              onChange={(e) => setNoiseReduction(e.target.checked)}
-              disabled={isListening}
-              style={{ transform: 'scale(1.2)' }}
-            />
-            <label htmlFor="noiseReduction" style={{ color: 'var(--dark-text-secondary)' }}>
-              启用噪音降低
-            </label>
-          </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="noiseReduction"
+                  checked={noiseReduction}
+                  onChange={(e) => setNoiseReduction(e.target.checked)}
+                  disabled={isListening}
+                  style={{ 
+                    width: '18px', 
+                    height: '18px',
+                    accentColor: 'var(--primary-500)'
+                  }}
+                />
+                <label htmlFor="noiseReduction" className="text-body">
+                  启用噪音降低
+                </label>
+              </div>
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* 音频级别显示 */}
-        {isListening && (
-          <div style={{ marginBottom: '2rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <span style={{ color: 'var(--dark-text-secondary)', fontSize: '0.9rem' }}>环境音频级别</span>
-              <span style={{ 
-                color: audioLevel > sensitivity ? '#10b981' : 'var(--dark-text)',
-                fontSize: '0.9rem',
-                fontWeight: audioLevel > sensitivity ? '600' : 'normal'
-              }}>
-                {Math.round(audioLevel)}%
-              </span>
+      {/* Audio Level Display */}
+      {isListening && (
+        <div className="card mb-6">
+          <div className="card-content">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-caption">环境音频级别</span>
+              <div className="flex items-center gap-2">
+                <span className="text-small">{Math.round(audioLevel)}%</span>
+                <span className="text-small" style={{ 
+                  color: audioLevel > sensitivity ? 'var(--accent-green)' : 'var(--text-tertiary)'
+                }}>
+                  {audioLevel > sensitivity ? '🎵' : '🔇'}
+                </span>
+              </div>
             </div>
             <div className="progress-bar">
               <div 
                 className="progress-fill" 
                 style={{ 
                   width: `${audioLevel}%`,
-                  background: audioLevel > sensitivity ? 'var(--primary-gradient)' : 'rgba(255, 255, 255, 0.3)'
+                  background: audioLevel > sensitivity ? 
+                    'linear-gradient(90deg, var(--accent-green), var(--primary-500))' : 
+                    'var(--neutral-300)'
                 }}
               ></div>
             </div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--dark-text-secondary)', marginTop: '0.25rem' }}>
-              {audioLevel > sensitivity ? '🎵 检测到音频' : '🔇 等待音频输入...'}
+            <div className="text-small mt-2" style={{ color: 'var(--text-tertiary)' }}>
+              {audioLevel > sensitivity ? '检测到音频信号' : '等待音频输入...'}
             </div>
+            
+            {/* Audio Visualizer */}
+            {audioLevel > sensitivity && (
+              <div className="audio-visualizer mt-4">
+                {[...Array(9)].map((_, i) => (
+                  <div key={i} className="audio-bar"></div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-
-        {/* 音频可视化 */}
-        {isListening && audioLevel > sensitivity && (
-          <div className="audio-visualizer">
-            {[...Array(9)].map((_, i) => (
-              <div key={i} className="audio-bar"></div>
-            ))}
-          </div>
-        )}
-
-        {/* 控制按钮 */}
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginBottom: '2rem', flexWrap: 'wrap' }}>
-          {!isListening ? (
-            <button 
-              className="premium-button ripple"
-              onClick={startListening}
-              style={{ 
-                color: 'white',
-                fontSize: '1.1rem',
-                padding: '1rem 2rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}
-            >
-              👂 开始监听
-            </button>
-          ) : (
-            <button 
-              className="premium-button secondary ripple"
-              onClick={stopListening}
-              style={{ 
-                color: 'white',
-                fontSize: '1.1rem',
-                padding: '1rem 2rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}
-            >
-              ⏹️ 停止监听
-            </button>
-          )}
-          
-          {translations.length > 0 && (
-            <>
-              <button 
-                className="premium-button accent ripple"
-                onClick={clearTranslations}
-                style={{ 
-                  color: 'white',
-                  fontSize: '1rem',
-                  padding: '1rem 1.5rem'
-                }}
-              >
-                🗑️ 清除
-              </button>
-              
-              <button 
-                className="premium-button gold ripple"
-                onClick={exportTranslations}
-                style={{ 
-                  color: 'white',
-                  fontSize: '1rem',
-                  padding: '1rem 1.5rem'
-                }}
-              >
-                📥 导出
-              </button>
-            </>
-          )}
         </div>
+      )}
 
-        {/* 翻译状态 */}
-        {isTranslating && (
-          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-            <div className="loading-spinner"></div>
-            <p style={{ color: 'var(--dark-text-secondary)', marginTop: '0.5rem' }}>
-              正在翻译...
-            </p>
-          </div>
+      {/* Control Buttons */}
+      <div className="flex gap-3 justify-center mb-6">
+        {!isListening ? (
+          <button 
+            className="btn btn-primary btn-lg"
+            onClick={startListening}
+            style={{ minWidth: '160px' }}
+          >
+            <span style={{ fontSize: '1.2rem' }}>👂</span>
+            开始监听
+          </button>
+        ) : (
+          <button 
+            className="btn btn-secondary btn-lg"
+            onClick={stopListening}
+            style={{ minWidth: '160px' }}
+          >
+            <span style={{ fontSize: '1.2rem' }}>⏹️</span>
+            停止监听
+          </button>
         )}
-
-        {/* 错误信息 */}
-        {error && (
-          <div style={{ 
-            background: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: 'var(--radius-md)',
-            padding: '1rem',
-            marginBottom: '1.5rem',
-            color: '#fca5a5'
-          }}>
-            ⚠️ {error}
-          </div>
-        )}
-
-        {/* 翻译结果 */}
+        
         {translations.length > 0 && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ color: 'var(--dark-text)' }}>
-                翻译结果 ({translations.length})
-              </h3>
-              <span style={{ fontSize: '0.8rem', color: 'var(--dark-text-secondary)' }}>
-                最新在上
-              </span>
+          <>
+            <button 
+              className="btn btn-ghost"
+              onClick={clearTranslations}
+            >
+              清除记录
+            </button>
+            
+            <button 
+              className="btn btn-ghost"
+              onClick={exportTranslations}
+            >
+              导出数据
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Translation Status */}
+      {isTranslating && (
+        <div className="card mb-6">
+          <div className="card-content text-center">
+            <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
+            <p className="text-caption">正在翻译音频内容...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="card mb-6" style={{ 
+          borderColor: '#ef4444',
+          background: '#fef2f2'
+        }}>
+          <div className="card-content">
+            <div className="flex items-center gap-2">
+              <span style={{ color: '#ef4444', fontSize: '1.2rem' }}>⚠️</span>
+              <span style={{ color: '#dc2626' }}>{error}</span>
             </div>
-            <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+          </div>
+        </div>
+      )}
+
+      {/* Translation Results */}
+      {translations.length > 0 && (
+        <div className="card">
+          <div className="card-header">
+            <div className="flex justify-between items-center">
+              <h3 className="heading-3">翻译结果</h3>
+              <span className="text-small">共 {translations.length} 条</span>
+            </div>
+          </div>
+          <div className="card-content">
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
               {translations.map((translation, index) => (
                 <div 
                   key={translation.id}
-                  className="glass-card slide-in"
+                  className="card mb-4 scale-in"
                   style={{ 
-                    margin: '0.5rem 0',
-                    padding: '1rem',
-                    animationDelay: `${index * 0.05}s`
+                    animationDelay: `${index * 0.05}s`,
+                    background: 'var(--bg-secondary)'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--dark-text-secondary)' }}>
-                      {translation.timestamp}
-                    </span>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <span style={{ 
-                        fontSize: '0.7rem', 
-                        color: 'var(--dark-text-secondary)',
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        padding: '0.2rem 0.4rem',
-                        borderRadius: '8px'
+                  <div className="card-content">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-small">{translation.timestamp}</span>
+                      <div className="flex items-center gap-2">
+                        <span 
+                          className="text-small rounded-full"
+                          style={{ 
+                            padding: '0.2rem 0.4rem',
+                            background: 'var(--bg-tertiary)',
+                            color: 'var(--text-tertiary)',
+                            fontSize: '0.7rem'
+                          }}
+                        >
+                          🔊 {Math.round(translation.audioLevel)}%
+                        </span>
+                        <span 
+                          className="text-small rounded-full"
+                          style={{ 
+                            padding: '0.25rem 0.5rem',
+                            background: translation.confidence > 0.7 ? '#dcfce7' : '#fef3c7',
+                            color: translation.confidence > 0.7 ? '#166534' : '#92400e'
+                          }}
+                        >
+                          {Math.round(translation.confidence * 100)}%
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-3">
+                      <div className="text-small mb-1" style={{ color: 'var(--text-tertiary)' }}>
+                        原文 ({translation.sourceLanguage}):
+                      </div>
+                      <div className="text-body">{translation.original}</div>
+                    </div>
+                    
+                    <div>
+                      <div className="text-small mb-1" style={{ color: 'var(--text-tertiary)' }}>
+                        译文 ({translation.targetLanguage}):
+                      </div>
+                      <div className="text-body" style={{ 
+                        color: 'var(--primary-600)',
+                        fontWeight: 'var(--font-medium)'
                       }}>
-                        🔊 {Math.round(translation.audioLevel)}%
-                      </span>
-                      <span style={{ 
-                        fontSize: '0.8rem', 
-                        color: translation.confidence > 0.7 ? '#10b981' : '#f59e0b',
-                        background: translation.confidence > 0.7 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '12px'
-                      }}>
-                        {Math.round(translation.confidence * 100)}%
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div style={{ marginBottom: '0.5rem' }}>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--dark-text-secondary)', marginBottom: '0.25rem' }}>
-                      原文 ({translation.sourceLanguage}):
-                    </div>
-                    <div style={{ color: 'var(--dark-text)', lineHeight: '1.4' }}>
-                      {translation.original}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--dark-text-secondary)', marginBottom: '0.25rem' }}>
-                      译文 ({translation.targetLanguage}):
-                    </div>
-                    <div style={{ color: '#4facfe', lineHeight: '1.4', fontWeight: '500' }}>
-                      {translation.translated}
+                        {translation.translated}
+                      </div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* 使用说明 */}
-        {!isListening && translations.length === 0 && (
-          <div className="glass-card" style={{ padding: '1.5rem', marginTop: '2rem' }}>
-            <h4 style={{ marginBottom: '1rem', color: 'var(--dark-text)' }}>
-              💡 使用说明
-            </h4>
-            <ul style={{ color: 'var(--dark-text-secondary)', lineHeight: '1.6', paddingLeft: '1.5rem' }}>
-              <li>配置源语言和目标语言（支持自动检测）</li>
-              <li>调整音频灵敏度以适应环境噪音</li>
-              <li>启用噪音降低以提高识别准确性</li>
-              <li>点击"开始监听"开始捕获环境音频</li>
-              <li>系统将自动识别并翻译检测到的语音</li>
-              <li>可以导出翻译历史为JSON文件</li>
-            </ul>
+      {/* Usage Instructions */}
+      {!isListening && translations.length === 0 && (
+        <div className="card">
+          <div className="card-header">
+            <h3 className="heading-3">使用说明</h3>
           </div>
-        )}
-      </div>
+          <div className="card-content">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-start gap-3">
+                <span style={{ 
+                  background: 'var(--primary-100)',
+                  color: 'var(--primary-600)',
+                  borderRadius: 'var(--radius-full)',
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.75rem',
+                  fontWeight: 'var(--font-semibold)',
+                  flexShrink: 0
+                }}>
+                  1
+                </span>
+                <span className="text-body">配置源语言和目标语言（支持自动检测）</span>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <span style={{ 
+                  background: 'var(--primary-100)',
+                  color: 'var(--primary-600)',
+                  borderRadius: 'var(--radius-full)',
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.75rem',
+                  fontWeight: 'var(--font-semibold)',
+                  flexShrink: 0
+                }}>
+                  2
+                </span>
+                <span className="text-body">调整音频灵敏度以适应环境噪音</span>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <span style={{ 
+                  background: 'var(--primary-100)',
+                  color: 'var(--primary-600)',
+                  borderRadius: 'var(--radius-full)',
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.75rem',
+                  fontWeight: 'var(--font-semibold)',
+                  flexShrink: 0
+                }}>
+                  3
+                </span>
+                <span className="text-body">点击"开始监听"开始捕获环境音频</span>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <span style={{ 
+                  background: 'var(--primary-100)',
+                  color: 'var(--primary-600)',
+                  borderRadius: 'var(--radius-full)',
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.75rem',
+                  fontWeight: 'var(--font-semibold)',
+                  flexShrink: 0
+                }}>
+                  4
+                </span>
+                <span className="text-body">系统将自动识别并翻译检测到的语音</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

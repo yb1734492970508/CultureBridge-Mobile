@@ -2,15 +2,30 @@ import React, { useState } from 'react';
 import PhoneAudioTranslator from './components/PhoneAudioTranslator';
 import ExternalAudioTranslator from './components/ExternalAudioTranslator';
 import CrossBorderVoiceCall from './components/CrossBorderVoiceCall';
-import './styles/premium.css';
+import './styles/ultra-premium.css';
 
 function App() {
   const [activeTab, setActiveTab] = useState('phone');
 
   const tabs = [
-    { id: 'phone', name: '📱 手机音频', icon: '📱' },
-    { id: 'external', name: '🎤 外部音频', icon: '🎤' },
-    { id: 'voice-call', name: '🌍 语音通话', icon: '🌍' }
+    { 
+      id: 'phone', 
+      name: '手机音频', 
+      icon: '📱',
+      description: '实时翻译手机播放内容'
+    },
+    { 
+      id: 'external', 
+      name: '环境音频', 
+      icon: '🎤',
+      description: '监听周围环境声音'
+    },
+    { 
+      id: 'voice-call', 
+      name: '语音通话', 
+      icon: '🌍',
+      description: '跨国语音交流匹配'
+    }
   ];
 
   const renderActiveComponent = () => {
@@ -27,104 +42,62 @@ function App() {
   };
 
   return (
-    <div className="premium-container">
-      {/* 顶部导航 */}
-      <div style={{ 
-        position: 'sticky', 
-        top: 0, 
-        zIndex: 100,
-        background: 'rgba(10, 10, 10, 0.9)',
-        backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        padding: '1rem'
-      }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center',
-          marginBottom: '1rem'
-        }}>
-          <h1 className="gradient-text" style={{ 
-            fontSize: '1.8rem', 
-            textAlign: 'center',
-            margin: 0
+    <div className="app-container">
+      {/* Header */}
+      <header className="app-header">
+        <div className="text-center">
+          <h1 className="heading-2" style={{ 
+            background: 'linear-gradient(135deg, #f17d47, #e25d2b)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            marginBottom: '0.5rem'
           }}>
             CultureBridge
           </h1>
+          <p className="text-caption">连接世界，消除语言障碍</p>
         </div>
         
-        <div style={{ 
-          display: 'flex', 
-          gap: '0.5rem', 
-          justifyContent: 'center',
-          flexWrap: 'wrap'
-        }}>
+        {/* Navigation Tabs */}
+        <div className="nav-tabs mt-6">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`premium-button ${activeTab === tab.id ? '' : 'secondary'} ripple`}
-              style={{
-                color: 'white',
-                fontSize: '0.9rem',
-                padding: '0.75rem 1.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                minWidth: '120px',
-                justifyContent: 'center',
-                opacity: activeTab === tab.id ? 1 : 0.7,
-                transform: activeTab === tab.id ? 'scale(1.05)' : 'scale(1)',
-                transition: 'all var(--transition-normal)'
-              }}
+              className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
             >
-              <span style={{ fontSize: '1.2rem' }}>{tab.icon}</span>
-              <span>{tab.name.split(' ')[1]}</span>
+              <div className="flex flex-col items-center gap-1">
+                <span style={{ fontSize: '1.2rem' }}>{tab.icon}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: '500' }}>
+                  {tab.name}
+                </span>
+              </div>
             </button>
           ))}
         </div>
-      </div>
+      </header>
 
-      {/* 主要内容区域 */}
-      <div style={{ 
-        minHeight: 'calc(100vh - 120px)',
-        position: 'relative'
-      }}>
-        {renderActiveComponent()}
-      </div>
+      {/* Main Content */}
+      <main className="app-content">
+        <div className="fade-in">
+          {renderActiveComponent()}
+        </div>
+      </main>
 
-      {/* 底部信息 */}
-      <div style={{ 
-        textAlign: 'center', 
-        padding: '2rem 1rem',
-        color: 'var(--dark-text-secondary)',
-        fontSize: '0.8rem',
-        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-        background: 'rgba(10, 10, 10, 0.5)'
+      {/* Footer */}
+      <footer style={{ 
+        padding: '2rem 1.5rem',
+        textAlign: 'center',
+        borderTop: '1px solid var(--border-light)',
+        background: 'var(--bg-secondary)'
       }}>
-        <p>CultureBridge - 连接世界，消除语言障碍</p>
-        <p style={{ marginTop: '0.5rem', opacity: 0.7 }}>
+        <p className="text-small">
           Powered by AI Translation Technology
         </p>
-      </div>
-
-      {/* 浮动操作按钮 */}
-      <button 
-        className="fab floating"
-        onClick={() => {
-          // 切换到下一个标签
-          const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
-          const nextIndex = (currentIndex + 1) % tabs.length;
-          setActiveTab(tabs[nextIndex].id);
-        }}
-        style={{
-          fontSize: '1.5rem',
-          color: 'white'
-        }}
-        title="切换功能"
-      >
-        🔄
-      </button>
+        <p className="text-small mt-2" style={{ opacity: 0.6 }}>
+          © 2024 CultureBridge. All rights reserved.
+        </p>
+      </footer>
     </div>
   );
 }

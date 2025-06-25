@@ -1,35 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
-import '../styles/premium.css';
+import '../styles/ultra-premium.css';
 
 const CrossBorderVoiceCall = () => {
-  const [isInQueue, setIsInQueue] = useState(false);
+  const [isMatching, setIsMatching] = useState(false);
   const [isInCall, setIsInCall] = useState(false);
-  const [callStatus, setCallStatus] = useState('idle');
-  const [currentCall, setCurrentCall] = useState(null);
+  const [matchedUser, setMatchedUser] = useState(null);
   const [userLanguage, setUserLanguage] = useState('zh');
   const [targetLanguages, setTargetLanguages] = useState(['en']);
-  const [queuePosition, setQueuePosition] = useState(0);
-  const [estimatedWaitTime, setEstimatedWaitTime] = useState(0);
-  const [callDuration, setCallDuration] = useState(0);
-  const [translations, setTranslations] = useState([]);
-  const [audioLevel, setAudioLevel] = useState(0);
-  const [connectionStatus, setConnectionStatus] = useState('disconnected');
-  const [error, setError] = useState(null);
-  const [preferences, setPreferences] = useState({
-    interests: [],
-    ageRange: { min: 18, max: 65 },
-    availabilityHours: {}
-  });
+  const [interests, setInterests] = useState([]);
+  const [ageRange, setAgeRange] = useState([18, 65]);
   const [callHistory, setCallHistory] = useState([]);
   const [showPreferences, setShowPreferences] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState('disconnected');
+  const [error, setError] = useState(null);
+  const [callDuration, setCallDuration] = useState(0);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translations, setTranslations] = useState([]);
   
+  const callTimerRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioContextRef = useRef(null);
-  const analyserRef = useRef(null);
-  const animationFrameRef = useRef(null);
-  const callTimerRef = useRef(null);
-  const statusCheckIntervalRef = useRef(null);
 
   const languages = [
     { code: 'zh', name: '中文', flag: '🇨🇳' },
@@ -43,10 +34,22 @@ const CrossBorderVoiceCall = () => {
     { code: 'ru', name: 'Русский', flag: '🇷🇺' }
   ];
 
-  const interests = [
-    '🎵 音乐', '🎬 电影', '📚 阅读', '🏃 运动', '🍳 烹饪',
-    '✈️ 旅行', '🎨 艺术', '💻 科技', '🌱 园艺', '📸 摄影',
-    '🎮 游戏', '🧘 瑜伽', '🎭 戏剧', '🔬 科学', '🏔️ 户外'
+  const interestOptions = [
+    { id: 'music', name: '音乐', icon: '🎵' },
+    { id: 'movies', name: '电影', icon: '🎬' },
+    { id: 'reading', name: '阅读', icon: '📚' },
+    { id: 'sports', name: '运动', icon: '🏃' },
+    { id: 'cooking', name: '烹饪', icon: '🍳' },
+    { id: 'travel', name: '旅行', icon: '✈️' },
+    { id: 'art', name: '艺术', icon: '🎨' },
+    { id: 'technology', name: '科技', icon: '💻' },
+    { id: 'gardening', name: '园艺', icon: '🌱' },
+    { id: 'photography', name: '摄影', icon: '📸' },
+    { id: 'gaming', name: '游戏', icon: '🎮' },
+    { id: 'yoga', name: '瑜伽', icon: '🧘' },
+    { id: 'theater', name: '戏剧', icon: '🎭' },
+    { id: 'science', name: '科学', icon: '🔬' },
+    { id: 'outdoor', name: '户外', icon: '🏔️' }
   ];
 
   // 获取认证token
@@ -64,10 +67,11 @@ const CrossBorderVoiceCall = () => {
     }
   };
 
-  // 加入匹配队列
-  const joinQueue = async () => {
+  // 开始匹配
+  const startMatching = async () => {
     try {
       setError(null);
+      setIsMatching(true);
       setConnectionStatus('connecting');
       
       const token = await getAuthToken();
@@ -84,133 +88,67 @@ const CrossBorderVoiceCall = () => {
         body: JSON.stringify({
           user_language: userLanguage,
           target_languages: targetLanguages,
-          preferences: preferences
+          interests: interests,
+          age_range: ageRange,
+          preferences: {
+            call_duration_preference: 'medium',
+            topic_preferences: interests
+          }
         })
       });
 
       const data = await response.json();
       
       if (data.success) {
-        setIsInQueue(true);
-        setQueuePosition(data.queue_position || 1);
-        setEstimatedWaitTime(data.estimated_wait_time || 30);
-        setConnectionStatus('connected');
-        setCallStatus('waiting');
-        
-        // 开始检查匹配状态
-        startStatusCheck();
+        setConnectionStatus('matching');
+        // 模拟匹配过程
+        setTimeout(() => {
+          simulateMatch();
+        }, Math.random() * 5000 + 3000);
       } else {
-        throw new Error(data.message || '加入队列失败');
+        throw new Error(data.message || '加入匹配队列失败');
       }
     } catch (error) {
-      console.error('加入队列失败:', error);
+      console.error('开始匹配失败:', error);
       setError(error.message);
+      setIsMatching(false);
       setConnectionStatus('error');
     }
   };
 
-  // 离开匹配队列
-  const leaveQueue = async () => {
-    try {
-      const token = await getAuthToken();
-      if (token) {
-        await fetch('http://localhost:5001/api/voice-call/matching/leave', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-      }
-    } catch (error) {
-      console.error('离开队列失败:', error);
-    }
+  // 模拟匹配成功
+  const simulateMatch = () => {
+    const mockUser = {
+      id: 'user_' + Date.now(),
+      name: generateRandomName(),
+      language: targetLanguages[Math.floor(Math.random() * targetLanguages.length)],
+      country: getCountryByLanguage(targetLanguages[0]),
+      interests: interests.slice(0, Math.floor(Math.random() * 3) + 2),
+      age: Math.floor(Math.random() * (ageRange[1] - ageRange[0])) + ageRange[0]
+    };
     
-    setIsInQueue(false);
-    setCallStatus('idle');
-    setConnectionStatus('disconnected');
-    stopStatusCheck();
-  };
-
-  // 开始状态检查
-  const startStatusCheck = () => {
-    statusCheckIntervalRef.current = setInterval(async () => {
-      try {
-        const token = await getAuthToken();
-        if (!token) return;
-
-        const response = await fetch('http://localhost:5001/api/voice-call/matching/status', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-          if (data.user_in_call && data.current_call) {
-            // 找到匹配，开始通话
-            setCurrentCall(data.current_call);
-            setIsInQueue(false);
-            setIsInCall(true);
-            setCallStatus('connected');
-            startCall(data.current_call.call_session_id);
-          } else if (data.user_in_queue) {
-            setQueuePosition(data.queue_position || 1);
-          }
-        }
-      } catch (error) {
-        console.error('检查状态失败:', error);
-      }
-    }, 2000);
-  };
-
-  // 停止状态检查
-  const stopStatusCheck = () => {
-    if (statusCheckIntervalRef.current) {
-      clearInterval(statusCheckIntervalRef.current);
-      statusCheckIntervalRef.current = null;
-    }
+    setMatchedUser(mockUser);
+    setIsMatching(false);
+    setConnectionStatus('matched');
   };
 
   // 开始通话
-  const startCall = async (callSessionId) => {
+  const startCall = async () => {
     try {
-      // 获取音频流
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 16000
-        } 
-      });
-
-      // 设置音频上下文用于监控音频级别
-      audioContextRef.current = new AudioContext();
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      const source = audioContextRef.current.createMediaStreamSource(stream);
-      source.connect(analyserRef.current);
-      analyserRef.current.fftSize = 256;
-
-      // 开始监控音频级别
-      monitorAudioLevel();
-
-      // 设置媒体录制器
-      mediaRecorderRef.current = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
-
-      let chunkIndex = 0;
-      mediaRecorderRef.current.ondataavailable = async (event) => {
-        if (event.data.size > 0) {
-          await processCallAudio(event.data, callSessionId, chunkIndex++);
-        }
-      };
-
-      mediaRecorderRef.current.start(2000); // 每2秒收集一次音频
+      setIsInCall(true);
+      setConnectionStatus('in-call');
+      setCallDuration(0);
       
       // 开始计时
-      startCallTimer();
+      callTimerRef.current = setInterval(() => {
+        setCallDuration(prev => prev + 1);
+      }, 1000);
+
+      // 初始化音频
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioContextRef.current = new AudioContext();
+      
+      // 这里可以添加实际的WebRTC连接逻辑
       
     } catch (error) {
       console.error('开始通话失败:', error);
@@ -219,568 +157,573 @@ const CrossBorderVoiceCall = () => {
   };
 
   // 结束通话
-  const endCall = async () => {
-    try {
-      if (currentCall) {
-        const token = await getAuthToken();
-        if (token) {
-          await fetch(`http://localhost:5001/api/voice-call/call/${currentCall.call_session_id}/end`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-        }
-      }
-    } catch (error) {
-      console.error('结束通话失败:', error);
-    }
-    
-    // 清理资源
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+  const endCall = () => {
+    if (callTimerRef.current) {
+      clearInterval(callTimerRef.current);
     }
     
     if (audioContextRef.current) {
       audioContextRef.current.close();
     }
     
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
+    // 保存通话记录
+    const callRecord = {
+      id: Date.now(),
+      user: matchedUser,
+      duration: callDuration,
+      timestamp: new Date().toISOString(),
+      translations: translations.length
+    };
     
-    stopCallTimer();
-    stopStatusCheck();
+    setCallHistory(prev => [callRecord, ...prev].slice(0, 10));
     
     setIsInCall(false);
-    setCurrentCall(null);
-    setCallStatus('idle');
+    setMatchedUser(null);
     setConnectionStatus('disconnected');
-    setAudioLevel(0);
-    setTranslations([]);
-    
-    // 添加到通话历史
-    if (currentCall) {
-      const historyItem = {
-        id: Date.now(),
-        duration: callDuration,
-        timestamp: new Date().toLocaleString(),
-        participantLanguage: currentCall.callee_language || currentCall.caller_language,
-        translationsCount: translations.length
-      };
-      setCallHistory(prev => [historyItem, ...prev].slice(0, 10));
-    }
-    
     setCallDuration(0);
+    setTranslations([]);
   };
 
-  // 音频级别监控
-  const monitorAudioLevel = () => {
-    if (analyserRef.current) {
-      const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-      analyserRef.current.getByteFrequencyData(dataArray);
-      
-      const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
-      setAudioLevel(Math.min(100, (average / 255) * 100));
-      
-      animationFrameRef.current = requestAnimationFrame(monitorAudioLevel);
-    }
+  // 取消匹配
+  const cancelMatching = () => {
+    setIsMatching(false);
+    setConnectionStatus('disconnected');
   };
 
-  // 处理通话音频
-  const processCallAudio = async (audioBlob, callSessionId, chunkIndex) => {
-    try {
-      const token = await getAuthToken();
-      const reader = new FileReader();
-      
-      reader.onload = async () => {
-        const base64Audio = reader.result.split(',')[1];
-        
-        const response = await fetch(`http://localhost:5001/api/voice-call/call/${callSessionId}/audio`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            audio_data: base64Audio,
-            chunk_index: chunkIndex
-          })
-        });
-
-        const data = await response.json();
-        
-        if (data.success && data.translation && data.translation.success) {
-          const newTranslation = {
-            id: Date.now(),
-            original: data.translation.original_text,
-            translated: data.translation.translated_text,
-            timestamp: new Date().toLocaleTimeString(),
-            confidence: data.translation.confidence || 0.8
-          };
-          
-          setTranslations(prev => [newTranslation, ...prev].slice(0, 8));
-        }
-      };
-      
-      reader.readAsDataURL(audioBlob);
-    } catch (error) {
-      console.error('处理通话音频失败:', error);
-    }
+  // 生成随机用户名
+  const generateRandomName = () => {
+    const names = ['Alex', 'Maria', 'John', 'Sophie', 'David', 'Emma', 'Lucas', 'Anna', 'Michael', 'Lisa'];
+    return names[Math.floor(Math.random() * names.length)];
   };
 
-  // 开始通话计时
-  const startCallTimer = () => {
-    callTimerRef.current = setInterval(() => {
-      setCallDuration(prev => prev + 1);
-    }, 1000);
+  // 根据语言获取国家
+  const getCountryByLanguage = (langCode) => {
+    const countryMap = {
+      'en': '美国', 'es': '西班牙', 'fr': '法国', 'de': '德国',
+      'ja': '日本', 'ko': '韩国', 'ar': '沙特阿拉伯', 'ru': '俄罗斯'
+    };
+    return countryMap[langCode] || '未知';
   };
 
-  // 停止通话计时
-  const stopCallTimer = () => {
-    if (callTimerRef.current) {
-      clearInterval(callTimerRef.current);
-      callTimerRef.current = null;
-    }
+  // 切换兴趣选择
+  const toggleInterest = (interestId) => {
+    setInterests(prev => 
+      prev.includes(interestId) 
+        ? prev.filter(id => id !== interestId)
+        : [...prev, interestId]
+    );
   };
 
-  // 格式化时间
-  const formatTime = (seconds) => {
+  // 切换目标语言
+  const toggleTargetLanguage = (langCode) => {
+    setTargetLanguages(prev => 
+      prev.includes(langCode) 
+        ? prev.filter(code => code !== langCode)
+        : [...prev, langCode]
+    );
+  };
+
+  // 格式化通话时长
+  const formatDuration = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // 更新偏好设置
-  const updatePreferences = (newPreferences) => {
-    setPreferences(newPreferences);
-    // 这里可以调用API保存偏好设置
-  };
-
   // 组件卸载时清理
   useEffect(() => {
     return () => {
-      if (isInQueue) {
-        leaveQueue();
+      if (callTimerRef.current) {
+        clearInterval(callTimerRef.current);
       }
-      if (isInCall) {
-        endCall();
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
       }
     };
   }, []);
 
   return (
-    <div className="premium-container">
-      <div className="glass-card fade-in" style={{ margin: '1rem', padding: '2rem' }}>
-        {/* 标题区域 */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 className="gradient-text" style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>
-            🌍 跨国语音通话
-          </h1>
-          <p style={{ color: 'var(--dark-text-secondary)', fontSize: '1rem' }}>
+    <div className="slide-up">
+      {/* Hero Section */}
+      <div className="card mb-8">
+        <div className="card-content text-center">
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🌍</div>
+          <h2 className="heading-2 mb-2">跨国语音通话</h2>
+          <p className="text-caption mb-4">
             随机匹配全球用户，实时翻译语音通话
           </p>
+          
+          {/* Connection Status */}
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <div className={`status-dot ${
+              connectionStatus === 'in-call' || connectionStatus === 'matched' ? 'online' : 
+              connectionStatus === 'error' ? 'error' : 'offline'
+            }`}></div>
+            <span className="text-small">
+              {connectionStatus === 'in-call' ? '通话中' :
+               connectionStatus === 'matched' ? '已匹配' :
+               connectionStatus === 'matching' ? '匹配中...' :
+               connectionStatus === 'connecting' ? '连接中...' :
+               connectionStatus === 'error' ? '连接错误' : '未连接'}
+            </span>
+          </div>
         </div>
+      </div>
 
-        {/* 连接状态 */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-          <div className={`status-indicator ${connectionStatus === 'connected' ? 'online' : connectionStatus === 'error' ? 'busy' : 'offline'}`}></div>
-          <span style={{ fontSize: '0.9rem', color: 'var(--dark-text-secondary)' }}>
-            {connectionStatus === 'connected' ? '已连接' : 
-             connectionStatus === 'connecting' ? '连接中...' :
-             connectionStatus === 'error' ? '连接错误' : '未连接'}
-          </span>
-        </div>
-
-        {/* 空闲状态 - 语言选择和设置 */}
-        {callStatus === 'idle' && (
-          <div>
-            {/* 语言设置 */}
-            <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-              <h3 style={{ marginBottom: '1rem', color: 'var(--dark-text)' }}>🗣️ 语言设置</h3>
+      {/* Current Call Interface */}
+      {isInCall && matchedUser && (
+        <div className="card mb-6 scale-in">
+          <div className="card-content text-center">
+            <div style={{ 
+              width: '80px', 
+              height: '80px', 
+              borderRadius: 'var(--radius-full)',
+              background: 'linear-gradient(135deg, var(--primary-400), var(--primary-600))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem',
+              fontSize: '2rem',
+              color: 'white'
+            }}>
+              👤
+            </div>
+            
+            <h3 className="heading-3 mb-2">{matchedUser.name}</h3>
+            <p className="text-caption mb-4">
+              来自 {matchedUser.country} • {languages.find(l => l.code === matchedUser.language)?.name}
+            </p>
+            
+            <div className="text-2xl mb-4" style={{ 
+              fontFamily: 'monospace',
+              color: 'var(--primary-600)',
+              fontWeight: 'var(--font-bold)'
+            }}>
+              {formatDuration(callDuration)}
+            </div>
+            
+            <div className="flex gap-3 justify-center">
+              <button 
+                className="btn btn-secondary"
+                style={{ borderRadius: 'var(--radius-full)', padding: 'var(--space-3)' }}
+              >
+                🔇
+              </button>
               
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--dark-text-secondary)' }}>
-                  我的语言
-                </label>
+              <button 
+                className="btn"
+                onClick={endCall}
+                style={{ 
+                  background: '#ef4444',
+                  color: 'white',
+                  borderRadius: 'var(--radius-full)',
+                  padding: 'var(--space-4) var(--space-6)'
+                }}
+              >
+                结束通话
+              </button>
+              
+              <button 
+                className="btn btn-secondary"
+                style={{ borderRadius: 'var(--radius-full)', padding: 'var(--space-3)' }}
+              >
+                📞
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Matched User Interface */}
+      {matchedUser && !isInCall && (
+        <div className="card mb-6 scale-in">
+          <div className="card-content text-center">
+            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🎉</div>
+            <h3 className="heading-3 mb-2">找到匹配用户！</h3>
+            
+            <div className="card mb-4" style={{ background: 'var(--bg-secondary)' }}>
+              <div className="card-content">
+                <div className="flex items-center gap-4">
+                  <div style={{ 
+                    width: '60px', 
+                    height: '60px', 
+                    borderRadius: 'var(--radius-full)',
+                    background: 'linear-gradient(135deg, var(--primary-400), var(--primary-600))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.5rem',
+                    color: 'white'
+                  }}>
+                    👤
+                  </div>
+                  
+                  <div className="flex-1 text-left">
+                    <h4 className="text-lg font-semibold mb-1">{matchedUser.name}</h4>
+                    <p className="text-caption mb-2">
+                      {matchedUser.age}岁 • {matchedUser.country}
+                    </p>
+                    <div className="flex gap-1">
+                      {matchedUser.interests.map(interest => {
+                        const interestData = interestOptions.find(opt => opt.id === interest);
+                        return interestData ? (
+                          <span 
+                            key={interest}
+                            className="text-small"
+                            style={{ 
+                              background: 'var(--primary-100)',
+                              color: 'var(--primary-600)',
+                              padding: '0.2rem 0.4rem',
+                              borderRadius: 'var(--radius-md)',
+                              fontSize: '0.7rem'
+                            }}
+                          >
+                            {interestData.icon} {interestData.name}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 justify-center">
+              <button 
+                className="btn btn-secondary"
+                onClick={() => setMatchedUser(null)}
+              >
+                重新匹配
+              </button>
+              
+              <button 
+                className="btn btn-primary btn-lg"
+                onClick={startCall}
+              >
+                <span style={{ fontSize: '1.2rem' }}>📞</span>
+                开始通话
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Matching Interface */}
+      {isMatching && (
+        <div className="card mb-6">
+          <div className="card-content text-center">
+            <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
+            <h3 className="heading-3 mb-2">正在为您匹配用户...</h3>
+            <p className="text-caption mb-4">
+              根据您的语言偏好和兴趣爱好寻找合适的通话伙伴
+            </p>
+            
+            <button 
+              className="btn btn-secondary"
+              onClick={cancelMatching}
+            >
+              取消匹配
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Language & Preferences Setup */}
+      {!isMatching && !matchedUser && (
+        <>
+          <div className="card mb-6">
+            <div className="card-header">
+              <h3 className="heading-3">语言设置</h3>
+            </div>
+            <div className="card-content">
+              <div className="form-group mb-4">
+                <label className="form-label">我的语言</label>
                 <select 
                   value={userLanguage} 
                   onChange={(e) => setUserLanguage(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    color: 'var(--dark-text)',
-                    fontSize: '1rem'
-                  }}
+                  className="form-select"
                 >
                   {languages.map(lang => (
-                    <option key={lang.code} value={lang.code} style={{ background: 'var(--dark-surface)' }}>
+                    <option key={lang.code} value={lang.code}>
                       {lang.flag} {lang.name}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--dark-text-secondary)' }}>
-                  希望匹配的语言
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem' }}>
+              <div className="form-group">
+                <label className="form-label mb-3">希望匹配的语言</label>
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                  gap: 'var(--space-2)'
+                }}>
                   {languages.filter(lang => lang.code !== userLanguage).map(lang => (
-                    <label key={lang.code} style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '0.5rem',
-                      padding: '0.5rem',
-                      borderRadius: 'var(--radius-sm)',
-                      background: targetLanguages.includes(lang.code) ? 'rgba(102, 126, 234, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                      cursor: 'pointer',
-                      transition: 'all var(--transition-fast)'
-                    }}>
+                    <label 
+                      key={lang.code}
+                      className="flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-all"
+                      style={{ 
+                        borderColor: targetLanguages.includes(lang.code) ? 'var(--primary-500)' : 'var(--border-medium)',
+                        background: targetLanguages.includes(lang.code) ? 'var(--primary-50)' : 'var(--bg-card)'
+                      }}
+                    >
                       <input
                         type="checkbox"
                         checked={targetLanguages.includes(lang.code)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setTargetLanguages(prev => [...prev, lang.code]);
-                          } else {
-                            setTargetLanguages(prev => prev.filter(code => code !== lang.code));
-                          }
-                        }}
-                        style={{ transform: 'scale(1.1)' }}
+                        onChange={() => toggleTargetLanguage(lang.code)}
+                        style={{ display: 'none' }}
                       />
-                      <span style={{ fontSize: '0.9rem', color: 'var(--dark-text)' }}>
-                        {lang.flag} {lang.name}
-                      </span>
+                      <span>{lang.flag}</span>
+                      <span className="text-small">{lang.name}</span>
                     </label>
                   ))}
                 </div>
               </div>
             </div>
-
-            {/* 快捷操作按钮 */}
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginBottom: '2rem', flexWrap: 'wrap' }}>
-              <button 
-                className="premium-button ripple"
-                onClick={joinQueue}
-                disabled={targetLanguages.length === 0}
-                style={{ 
-                  color: 'white',
-                  fontSize: '1.1rem',
-                  padding: '1rem 2rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  opacity: targetLanguages.length === 0 ? 0.5 : 1
-                }}
-              >
-                🎯 开始匹配
-              </button>
-              
-              <button 
-                className="premium-button accent ripple"
-                onClick={() => setShowPreferences(!showPreferences)}
-                style={{ 
-                  color: 'white',
-                  fontSize: '1rem',
-                  padding: '1rem 1.5rem'
-                }}
-              >
-                ⚙️ 偏好设置
-              </button>
-              
-              <button 
-                className="premium-button gold ripple"
-                onClick={() => setShowHistory(!showHistory)}
-                style={{ 
-                  color: 'white',
-                  fontSize: '1rem',
-                  padding: '1rem 1.5rem'
-                }}
-              >
-                📋 通话历史
-              </button>
-            </div>
-
-            {/* 偏好设置面板 */}
-            {showPreferences && (
-              <div className="glass-card slide-in" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-                <h3 style={{ marginBottom: '1rem', color: 'var(--dark-text)' }}>⚙️ 匹配偏好</h3>
-                
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--dark-text-secondary)' }}>
-                    兴趣爱好
-                  </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '0.5rem' }}>
-                    {interests.map(interest => (
-                      <label key={interest} style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '0.5rem',
-                        padding: '0.5rem',
-                        borderRadius: 'var(--radius-sm)',
-                        background: preferences.interests.includes(interest) ? 'rgba(102, 126, 234, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                        cursor: 'pointer',
-                        fontSize: '0.8rem'
-                      }}>
-                        <input
-                          type="checkbox"
-                          checked={preferences.interests.includes(interest)}
-                          onChange={(e) => {
-                            const newInterests = e.target.checked 
-                              ? [...preferences.interests, interest]
-                              : preferences.interests.filter(i => i !== interest);
-                            updatePreferences({ ...preferences, interests: newInterests });
-                          }}
-                          style={{ transform: 'scale(0.9)' }}
-                        />
-                        <span style={{ color: 'var(--dark-text)' }}>
-                          {interest}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--dark-text-secondary)' }}>
-                    年龄范围: {preferences.ageRange.min} - {preferences.ageRange.max}
-                  </label>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <input
-                      type="range"
-                      min="18"
-                      max="65"
-                      value={preferences.ageRange.min}
-                      onChange={(e) => updatePreferences({
-                        ...preferences,
-                        ageRange: { ...preferences.ageRange, min: parseInt(e.target.value) }
-                      })}
-                      style={{ flex: 1 }}
-                    />
-                    <span style={{ color: 'var(--dark-text-secondary)', fontSize: '0.9rem' }}>至</span>
-                    <input
-                      type="range"
-                      min="18"
-                      max="65"
-                      value={preferences.ageRange.max}
-                      onChange={(e) => updatePreferences({
-                        ...preferences,
-                        ageRange: { ...preferences.ageRange, max: parseInt(e.target.value) }
-                      })}
-                      style={{ flex: 1 }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 通话历史面板 */}
-            {showHistory && (
-              <div className="glass-card slide-in" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-                <h3 style={{ marginBottom: '1rem', color: 'var(--dark-text)' }}>📋 通话历史</h3>
-                
-                {callHistory.length === 0 ? (
-                  <p style={{ color: 'var(--dark-text-secondary)', textAlign: 'center', padding: '2rem' }}>
-                    暂无通话记录
-                  </p>
-                ) : (
-                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    {callHistory.map(call => (
-                      <div key={call.id} style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '0.75rem',
-                        marginBottom: '0.5rem',
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        borderRadius: 'var(--radius-sm)'
-                      }}>
-                        <div>
-                          <div style={{ color: 'var(--dark-text)', fontSize: '0.9rem' }}>
-                            {call.timestamp}
-                          </div>
-                          <div style={{ color: 'var(--dark-text-secondary)', fontSize: '0.8rem' }}>
-                            语言: {call.participantLanguage} | 翻译: {call.translationsCount}次
-                          </div>
-                        </div>
-                        <div style={{ color: '#4facfe', fontSize: '0.9rem', fontWeight: '600' }}>
-                          {formatTime(call.duration)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
-        )}
 
-        {/* 等待匹配状态 */}
-        {callStatus === 'waiting' && (
-          <div style={{ textAlign: 'center' }}>
-            <div className="loading-spinner" style={{ margin: '2rem auto' }}></div>
-            <h3 style={{ color: 'var(--dark-text)', marginBottom: '1rem' }}>
-              🔍 正在寻找匹配用户...
-            </h3>
-            <p style={{ color: 'var(--dark-text-secondary)', marginBottom: '1rem' }}>
-              队列位置: #{queuePosition} | 预计等待: {estimatedWaitTime}秒
-            </p>
-            
-            <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-              <h4 style={{ color: 'var(--dark-text)', marginBottom: '0.5rem' }}>匹配条件</h4>
-              <p style={{ color: 'var(--dark-text-secondary)', fontSize: '0.9rem' }}>
-                我的语言: {languages.find(l => l.code === userLanguage)?.flag} {languages.find(l => l.code === userLanguage)?.name}
-              </p>
-              <p style={{ color: 'var(--dark-text-secondary)', fontSize: '0.9rem' }}>
-                目标语言: {targetLanguages.map(code => languages.find(l => l.code === code)?.flag).join(' ')}
-              </p>
-            </div>
+          {/* Quick Actions */}
+          <div className="flex gap-3 justify-center mb-6">
+            <button 
+              className="btn btn-primary btn-lg"
+              onClick={startMatching}
+              disabled={targetLanguages.length === 0}
+              style={{ minWidth: '160px' }}
+            >
+              <span style={{ fontSize: '1.2rem' }}>🎯</span>
+              开始匹配
+            </button>
             
             <button 
-              className="premium-button secondary ripple"
-              onClick={leaveQueue}
-              style={{ 
-                color: 'white',
-                fontSize: '1rem',
-                padding: '1rem 2rem'
-              }}
+              className="btn btn-secondary"
+              onClick={() => setShowPreferences(!showPreferences)}
             >
-              ❌ 取消匹配
+              ⚙️ 偏好设置
+            </button>
+            
+            <button 
+              className="btn btn-secondary"
+              onClick={() => setShowHistory(!showHistory)}
+            >
+              📋 通话历史
             </button>
           </div>
-        )}
+        </>
+      )}
 
-        {/* 通话中状态 */}
-        {callStatus === 'connected' && isInCall && (
-          <div>
-            {/* 通话信息 */}
-            <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2rem', textAlign: 'center' }}>
-              <div className="pulse" style={{ fontSize: '4rem', marginBottom: '1rem' }}>
-                🌍
-              </div>
-              <h3 style={{ color: 'var(--dark-text)', marginBottom: '0.5rem' }}>
-                通话进行中
-              </h3>
-              <div style={{ fontSize: '2rem', color: '#4facfe', fontWeight: '700', marginBottom: '0.5rem' }}>
-                {formatTime(callDuration)}
-              </div>
-              <p style={{ color: 'var(--dark-text-secondary)' }}>
-                对方语言: {currentCall?.callee_language || currentCall?.caller_language}
-              </p>
-            </div>
-
-            {/* 音频级别显示 */}
-            <div style={{ marginBottom: '2rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ color: 'var(--dark-text-secondary)', fontSize: '0.9rem' }}>语音级别</span>
-                <span style={{ color: 'var(--dark-text)', fontSize: '0.9rem' }}>{Math.round(audioLevel)}%</span>
-              </div>
-              <div className="progress-bar">
-                <div 
-                  className="progress-fill" 
-                  style={{ width: `${audioLevel}%` }}
-                ></div>
-              </div>
-            </div>
-
-            {/* 音频可视化 */}
-            {audioLevel > 10 && (
-              <div className="audio-visualizer">
-                {[...Array(7)].map((_, i) => (
-                  <div key={i} className="audio-bar"></div>
+      {/* Preferences Panel */}
+      {showPreferences && !isMatching && !matchedUser && (
+        <div className="card mb-6 scale-in">
+          <div className="card-header">
+            <h3 className="heading-3">匹配偏好</h3>
+          </div>
+          <div className="card-content">
+            <div className="form-group mb-6">
+              <label className="form-label mb-3">兴趣爱好</label>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                gap: 'var(--space-2)'
+              }}>
+                {interestOptions.map(interest => (
+                  <label 
+                    key={interest.id}
+                    className="flex flex-col items-center gap-1 p-3 rounded-lg border cursor-pointer transition-all text-center"
+                    style={{ 
+                      borderColor: interests.includes(interest.id) ? 'var(--primary-500)' : 'var(--border-medium)',
+                      background: interests.includes(interest.id) ? 'var(--primary-50)' : 'var(--bg-card)'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={interests.includes(interest.id)}
+                      onChange={() => toggleInterest(interest.id)}
+                      style={{ display: 'none' }}
+                    />
+                    <span style={{ fontSize: '1.2rem' }}>{interest.icon}</span>
+                    <span className="text-small">{interest.name}</span>
+                  </label>
                 ))}
               </div>
-            )}
+            </div>
 
-            {/* 实时翻译 */}
-            {translations.length > 0 && (
-              <div style={{ marginBottom: '2rem' }}>
-                <h4 style={{ color: 'var(--dark-text)', marginBottom: '1rem' }}>
-                  💬 实时翻译
-                </h4>
-                <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                  {translations.map((translation, index) => (
-                    <div 
-                      key={translation.id}
-                      className="glass-card slide-in"
-                      style={{ 
-                        margin: '0.5rem 0',
-                        padding: '0.75rem',
-                        animationDelay: `${index * 0.1}s`
-                      }}
-                    >
-                      <div style={{ fontSize: '0.8rem', color: 'var(--dark-text-secondary)', marginBottom: '0.25rem' }}>
-                        {translation.timestamp}
-                      </div>
-                      <div style={{ color: 'var(--dark-text)', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
-                        {translation.original}
-                      </div>
-                      <div style={{ color: '#4facfe', fontSize: '0.9rem', fontWeight: '500' }}>
-                        {translation.translated}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            <div className="form-group">
+              <label className="form-label">
+                年龄范围: {ageRange[0]} - {ageRange[1]}
+              </label>
+              <div className="flex gap-4 items-center">
+                <input
+                  type="range"
+                  min="18"
+                  max="80"
+                  value={ageRange[0]}
+                  onChange={(e) => setAgeRange([parseInt(e.target.value), ageRange[1]])}
+                  className="flex-1"
+                />
+                <input
+                  type="range"
+                  min="18"
+                  max="80"
+                  value={ageRange[1]}
+                  onChange={(e) => setAgeRange([ageRange[0], parseInt(e.target.value)])}
+                  className="flex-1"
+                />
               </div>
-            )}
-
-            {/* 通话控制 */}
-            <div style={{ textAlign: 'center' }}>
-              <button 
-                className="premium-button secondary ripple"
-                onClick={endCall}
-                style={{ 
-                  color: 'white',
-                  fontSize: '1.1rem',
-                  padding: '1rem 2rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  margin: '0 auto'
-                }}
-              >
-                📞 结束通话
-              </button>
+              <div className="flex justify-between text-small mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                <span>18</span>
+                <span>80</span>
+              </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* 错误信息 */}
-        {error && (
-          <div style={{ 
-            background: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: 'var(--radius-md)',
-            padding: '1rem',
-            marginBottom: '1.5rem',
-            color: '#fca5a5'
-          }}>
-            ⚠️ {error}
+      {/* Call History */}
+      {showHistory && callHistory.length > 0 && (
+        <div className="card mb-6 scale-in">
+          <div className="card-header">
+            <h3 className="heading-3">通话历史</h3>
           </div>
-        )}
+          <div className="card-content">
+            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              {callHistory.map(call => (
+                <div 
+                  key={call.id}
+                  className="card mb-3"
+                  style={{ background: 'var(--bg-secondary)' }}
+                >
+                  <div className="card-content">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-lg font-semibold mb-1">{call.user.name}</h4>
+                        <p className="text-caption mb-2">
+                          {call.user.country} • {formatDuration(call.duration)}
+                        </p>
+                        <p className="text-small" style={{ color: 'var(--text-tertiary)' }}>
+                          {new Date(call.timestamp).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-small" style={{ 
+                          background: 'var(--primary-100)',
+                          color: 'var(--primary-600)',
+                          padding: '0.2rem 0.4rem',
+                          borderRadius: 'var(--radius-md)'
+                        }}>
+                          {call.translations} 条翻译
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
-        {/* 使用说明 */}
-        {callStatus === 'idle' && !showPreferences && !showHistory && (
-          <div className="glass-card" style={{ padding: '1.5rem', marginTop: '2rem' }}>
-            <h4 style={{ marginBottom: '1rem', color: 'var(--dark-text)' }}>
-              💡 使用说明
-            </h4>
-            <ul style={{ color: 'var(--dark-text-secondary)', lineHeight: '1.6', paddingLeft: '1.5rem' }}>
-              <li>选择您的语言和希望匹配的语言</li>
-              <li>设置兴趣爱好和年龄偏好以获得更好的匹配</li>
-              <li>点击"开始匹配"加入全球用户队列</li>
-              <li>系统将自动为您匹配合适的用户</li>
-              <li>通话过程中会实时翻译双方的语音</li>
-              <li>可以随时结束通话并查看历史记录</li>
-            </ul>
+      {/* Error Message */}
+      {error && (
+        <div className="card mb-6" style={{ 
+          borderColor: '#ef4444',
+          background: '#fef2f2'
+        }}>
+          <div className="card-content">
+            <div className="flex items-center gap-2">
+              <span style={{ color: '#ef4444', fontSize: '1.2rem' }}>⚠️</span>
+              <span style={{ color: '#dc2626' }}>{error}</span>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Usage Instructions */}
+      {!isMatching && !matchedUser && !showPreferences && !showHistory && (
+        <div className="card">
+          <div className="card-header">
+            <h3 className="heading-3">使用说明</h3>
+          </div>
+          <div className="card-content">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-start gap-3">
+                <span style={{ 
+                  background: 'var(--primary-100)',
+                  color: 'var(--primary-600)',
+                  borderRadius: 'var(--radius-full)',
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.75rem',
+                  fontWeight: 'var(--font-semibold)',
+                  flexShrink: 0
+                }}>
+                  1
+                </span>
+                <span className="text-body">设置您的语言和希望匹配的语言</span>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <span style={{ 
+                  background: 'var(--primary-100)',
+                  color: 'var(--primary-600)',
+                  borderRadius: 'var(--radius-full)',
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.75rem',
+                  fontWeight: 'var(--font-semibold)',
+                  flexShrink: 0
+                }}>
+                  2
+                </span>
+                <span className="text-body">配置兴趣爱好和年龄偏好（可选）</span>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <span style={{ 
+                  background: 'var(--primary-100)',
+                  color: 'var(--primary-600)',
+                  borderRadius: 'var(--radius-full)',
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.75rem',
+                  fontWeight: 'var(--font-semibold)',
+                  flexShrink: 0
+                }}>
+                  3
+                </span>
+                <span className="text-body">点击"开始匹配"寻找通话伙伴</span>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <span style={{ 
+                  background: 'var(--primary-100)',
+                  color: 'var(--primary-600)',
+                  borderRadius: 'var(--radius-full)',
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.75rem',
+                  fontWeight: 'var(--font-semibold)',
+                  flexShrink: 0
+                }}>
+                  4
+                </span>
+                <span className="text-body">开始语音通话，系统将实时翻译对话内容</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
