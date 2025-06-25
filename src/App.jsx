@@ -42,9 +42,12 @@ import {
   Clock,
   Eye,
   Filter,
-  Compass
+  Compass,
+  Phone
 } from 'lucide-react';
 import { LanguageProvider, useLanguage, useTranslation } from './hooks/useLanguage.jsx';
+import VoiceCallComponent from './components/VoiceCallComponent.jsx';
+import RealTimeTranslator from './components/RealTimeTranslator.jsx';
 import './App.css';
 
 // 导入图片
@@ -106,6 +109,7 @@ const FloatingNavigation = ({ activeTab, setActiveTab }) => {
     { id: 'home', icon: Home, label: t('common.home') },
     { id: 'discover', icon: Compass, label: t('common.discover') },
     { id: 'translate', icon: Languages, label: t('common.translate') },
+    { id: 'voice-call', icon: Phone, label: '语音通话' },
     { id: 'community', icon: Users, label: t('common.community') },
     { id: 'profile', icon: User, label: t('common.profile') }
   ];
@@ -597,6 +601,55 @@ const PremiumDiscoverPage = () => {
   );
 };
 
+// 语音通话页面组件
+const VoiceCallPage = () => {
+  const { t } = useTranslation();
+  
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 pt-20 pb-32">
+      <div className="container mx-auto px-4">
+        <div className="max-w-md mx-auto">
+          {/* 语音通话组件 */}
+          <VoiceCallComponent className="mb-6" />
+          
+          {/* 实时翻译器 */}
+          <RealTimeTranslator 
+            sourceLanguage="auto"
+            targetLanguage="en"
+            className="mb-6"
+          />
+          
+          {/* 使用说明 */}
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
+            <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-yellow-400" />
+              功能说明
+            </h3>
+            <div className="space-y-3 text-gray-300 text-sm">
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                <p>点击通话按钮开始寻找来自其他国家的用户进行语音交流</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
+                <p>实时翻译功能可以将对方的语音自动翻译成您的语言</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
+                <p>支持麦克风输入和系统音频捕获，可翻译手机播放的内容</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                <p>通话过程中可以看到对方的国家信息和文化背景</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PremiumProfilePage = () => {
   const { t } = useTranslation();
   // ... 其余代码保持不变
@@ -620,6 +673,8 @@ function AppContent() {
         return <PremiumDiscoverPage />;
       case 'translate':
         return <PremiumTranslatePage />;
+      case 'voice-call':
+        return <VoiceCallPage />;
       case 'community':
         return <PremiumCommunityPage />;
       case 'profile':
@@ -637,6 +692,8 @@ function AppContent() {
         return t('discover.title');
       case 'translate':
         return t('translate.title');
+      case 'voice-call':
+        return '语音通话';
       case 'community':
         return t('community.title');
       case 'profile':
