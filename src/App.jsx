@@ -4,100 +4,72 @@ import ExternalAudioTranslator from './components/ExternalAudioTranslator';
 import CrossBorderVoiceCall from './components/CrossBorderVoiceCall';
 import './styles/ultra-premium.css';
 
+// 导入高级图标
+import phoneAudioIcon from './assets/icons/phone_audio_icon_refined.png';
+import externalAudioIcon from './assets/icons/external_audio_icon_refined.png';
+import voiceCallIcon from './assets/icons/voice_call_icon_refined.png';
+
 function App() {
   const [activeTab, setActiveTab] = useState('phone');
 
   const tabs = [
-    { 
-      id: 'phone', 
-      name: '手机音频', 
-      icon: '📱',
-      description: '实时翻译手机播放内容'
+    {
+      id: 'phone',
+      name: '手机音频',
+      icon: phoneAudioIcon,
+      component: PhoneAudioTranslator
     },
-    { 
-      id: 'external', 
-      name: '环境音频', 
-      icon: '🎤',
-      description: '监听周围环境声音'
+    {
+      id: 'external',
+      name: '环境音频',
+      icon: externalAudioIcon,
+      component: ExternalAudioTranslator
     },
-    { 
-      id: 'voice-call', 
-      name: '语音通话', 
-      icon: '🌍',
-      description: '跨国语音交流匹配'
+    {
+      id: 'voice',
+      name: '语音通话',
+      icon: voiceCallIcon,
+      component: CrossBorderVoiceCall
     }
   ];
 
-  const renderActiveComponent = () => {
-    switch (activeTab) {
-      case 'phone':
-        return <PhoneAudioTranslator />;
-      case 'external':
-        return <ExternalAudioTranslator />;
-      case 'voice-call':
-        return <CrossBorderVoiceCall />;
-      default:
-        return <PhoneAudioTranslator />;
-    }
-  };
+  const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component;
 
   return (
-    <div className="app-container">
-      {/* Header */}
-      <header className="app-header">
-        <div className="text-center">
-          <h1 className="heading-2" style={{ 
-            background: 'linear-gradient(135deg, #f17d47, #e25d2b)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            marginBottom: '0.5rem'
-          }}>
-            CultureBridge
-          </h1>
-          <p className="text-caption">连接世界，消除语言障碍</p>
-        </div>
-        
-        {/* Navigation Tabs */}
-        <div className="nav-tabs mt-6">
-          {tabs.map(tab => (
+    <div className="app">
+      <div className="app-container">
+        {/* 头部 */}
+        <header className="app-header">
+          <h1 className="app-title">CultureBridge</h1>
+          <p className="app-subtitle">连接世界，消除语言障碍</p>
+        </header>
+
+        {/* 导航标签 */}
+        <nav className="tab-navigation">
+          {tabs.map((tab, index) => (
             <button
               key={tab.id}
+              className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
               onClick={() => setActiveTab(tab.id)}
-              className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
+              style={{
+                '--tab-index': index + 1
+              }}
             >
-              <div className="flex flex-col items-center gap-1">
-                <span style={{ fontSize: '1.2rem' }}>{tab.icon}</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: '500' }}>
-                  {tab.name}
-                </span>
-              </div>
+              <img 
+                src={tab.icon} 
+                alt={tab.name}
+                className="tab-icon"
+              />
+              <span className="tab-text">{tab.name}</span>
             </button>
           ))}
-        </div>
-      </header>
+        </nav>
 
-      {/* Main Content */}
-      <main className="app-content">
-        <div className="fade-in">
-          {renderActiveComponent()}
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer style={{ 
-        padding: '2rem 1.5rem',
-        textAlign: 'center',
-        borderTop: '1px solid var(--border-light)',
-        background: 'var(--bg-secondary)'
-      }}>
-        <p className="text-small">
-          Powered by AI Translation Technology
-        </p>
-        <p className="text-small mt-2" style={{ opacity: 0.6 }}>
-          © 2024 CultureBridge. All rights reserved.
-        </p>
-      </footer>
+        {/* 主要内容区域 */}
+        <main className="main-content">
+          {ActiveComponent && <ActiveComponent />}
+        </main>
+      </div>
     </div>
   );
 }
