@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import '../styles/ultra-premium.css';
 
 const PhoneAudioTranslator = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -26,7 +25,9 @@ const PhoneAudioTranslator = () => {
     { code: 'fr', name: 'Français', flag: '🇫🇷' },
     { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
     { code: 'ja', name: '日本語', flag: '🇯🇵' },
-    { code: 'ko', name: '한국어', flag: '🇰🇷' }
+    { code: 'ko', name: '한국어', flag: '🇰🇷' },
+    { code: 'ar', name: 'العربية', flag: '🇸🇦' },
+    { code: 'ru', name: 'Русский', flag: '🇷🇺' }
   ];
 
   // 获取认证token
@@ -55,7 +56,7 @@ const PhoneAudioTranslator = () => {
         throw new Error('无法获取认证token');
       }
 
-      const response = await fetch('http://localhost:5001/api/realtime/phone-audio/start', {
+      const response = await fetch('http://localhost:5001/api/translation/start-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -63,83 +64,48 @@ const PhoneAudioTranslator = () => {
         },
         body: JSON.stringify({
           source_language: sourceLanguage,
-          target_language: targetLanguage
+          target_language: targetLanguage,
+          session_type: 'phone_audio'
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
+      setSessionId(data.session_id);
+      setConnectionStatus('connected');
       
-      if (data.success) {
-        setSessionId(data.session_id);
-        setConnectionStatus('connected');
-        return data.session_id;
-      } else {
-        throw new Error(data.message || '启动会话失败');
-      }
+      // 开始录音
+      await startRecording();
     } catch (error) {
-      console.error('启动会话失败:', error);
+      console.error('开始会话失败:', error);
       setError(error.message);
-      setConnectionStatus('error');
-      return null;
-    }
-  };
-
-  // 停止翻译会话
-  const stopSession = async () => {
-    if (sessionId) {
-      try {
-        const token = await getAuthToken();
-        await fetch(`http://localhost:5001/api/realtime/session/${sessionId}/stop`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-      } catch (error) {
-        console.error('停止会话失败:', error);
-      }
-      
-      setSessionId(null);
       setConnectionStatus('disconnected');
-    }
-  };
-
-  // 音频级别监控
-  const monitorAudioLevel = () => {
-    if (analyserRef.current) {
-      const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-      analyserRef.current.getByteFrequencyData(dataArray);
-      
-      const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
-      setAudioLevel(Math.min(100, (average / 255) * 100));
-      
-      animationFrameRef.current = requestAnimationFrame(monitorAudioLevel);
     }
   };
 
   // 开始录音
   const startRecording = async () => {
     try {
-      setError(null);
-      
-      const newSessionId = await startSession();
-      if (!newSessionId) return;
-
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-          sampleRate: 16000
+          sampleRate: 44100
         } 
       });
 
+      // 设置音频分析
       audioContextRef.current = new AudioContext();
       analyserRef.current = audioContextRef.current.createAnalyser();
       const source = audioContextRef.current.createMediaStreamSource(stream);
       source.connect(analyserRef.current);
       analyserRef.current.fftSize = 256;
 
+      // 开始音频级别监控
       monitorAudioLevel();
 
       mediaRecorderRef.current = new MediaRecorder(stream, {
@@ -152,85 +118,119 @@ const PhoneAudioTranslator = () => {
       mediaRecorderRef.current.ondataavailable = async (event) => {
         if (event.data.size > 0) {
           chunksRef.current.push(event.data);
-          const audioBlob = new Blob([event.data], { type: 'audio/webm' });
-          await processAudioChunk(audioBlob, newSessionId);
+          
+          // 每收集到音频数据就发送翻译
+          if (sessionId) {
+            await sendAudioForTranslation(event.data, chunkIndexRef.current);
+            chunkIndexRef.current++;
+          }
         }
       };
 
-      mediaRecorderRef.current.start(2000);
+      mediaRecorderRef.current.start(1000); // 每秒收集一次数据
       setIsRecording(true);
-
     } catch (error) {
       console.error('开始录音失败:', error);
       setError('无法访问麦克风，请检查权限设置');
     }
   };
 
-  // 停止录音
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-    }
-    
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-    }
-    
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-    
-    setIsRecording(false);
-    setAudioLevel(0);
-    stopSession();
+  // 监控音频级别
+  const monitorAudioLevel = () => {
+    if (!analyserRef.current) return;
+
+    const bufferLength = analyserRef.current.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const updateLevel = () => {
+      analyserRef.current.getByteFrequencyData(dataArray);
+      const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+      setAudioLevel(Math.min(100, (average / 255) * 100));
+      
+      if (isRecording) {
+        animationFrameRef.current = requestAnimationFrame(updateLevel);
+      }
+    };
+
+    updateLevel();
   };
 
-  // 处理音频块
-  const processAudioChunk = async (audioBlob, currentSessionId) => {
+  // 发送音频进行翻译
+  const sendAudioForTranslation = async (audioBlob, chunkIndex) => {
     try {
       setIsTranslating(true);
       
       const token = await getAuthToken();
-      const reader = new FileReader();
-      
-      reader.onload = async () => {
-        const base64Audio = reader.result.split(',')[1];
-        
-        const response = await fetch(`http://localhost:5001/api/realtime/session/${currentSessionId}/audio`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            audio_data: base64Audio,
-            chunk_index: chunkIndexRef.current++
-          })
-        });
+      if (!token) return;
 
-        const data = await response.json();
-        
-        if (data.success && data.translation && data.translation.success) {
-          const newTranslation = {
-            id: Date.now(),
-            original: data.translation.original_text,
-            translated: data.translation.translated_text,
-            sourceLanguage: data.translation.source_language,
-            targetLanguage: data.translation.target_language,
-            confidence: data.translation.confidence || 0.8,
-            timestamp: new Date().toLocaleTimeString()
-          };
-          
-          setTranslations(prev => [newTranslation, ...prev].slice(0, 10));
+      const formData = new FormData();
+      formData.append('audio', audioBlob, `chunk_${chunkIndex}.webm`);
+      formData.append('session_id', sessionId);
+      formData.append('chunk_index', chunkIndex.toString());
+
+      const response = await fetch('http://localhost:5001/api/translation/translate-audio', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.translation && result.translation.trim()) {
+          setTranslations(prev => [...prev, {
+            id: Date.now() + chunkIndex,
+            original: result.original_text || '',
+            translated: result.translation,
+            timestamp: new Date().toLocaleTimeString(),
+            confidence: result.confidence || 0
+          }]);
         }
-      };
-      
-      reader.readAsDataURL(audioBlob);
+      }
     } catch (error) {
-      console.error('处理音频失败:', error);
+      console.error('翻译失败:', error);
     } finally {
       setIsTranslating(false);
+    }
+  };
+
+  // 停止录音和会话
+  const stopSession = async () => {
+    try {
+      if (mediaRecorderRef.current && isRecording) {
+        mediaRecorderRef.current.stop();
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      }
+
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+
+      if (sessionId) {
+        const token = await getAuthToken();
+        if (token) {
+          await fetch('http://localhost:5001/api/translation/end-session', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ session_id: sessionId })
+          });
+        }
+      }
+
+      setIsRecording(false);
+      setSessionId(null);
+      setConnectionStatus('disconnected');
+      setAudioLevel(0);
+    } catch (error) {
+      console.error('停止会话失败:', error);
     }
   };
 
@@ -239,313 +239,250 @@ const PhoneAudioTranslator = () => {
     setTranslations([]);
   };
 
-  // 组件卸载时清理
+  // 交换语言
+  const swapLanguages = () => {
+    const temp = sourceLanguage;
+    setSourceLanguage(targetLanguage);
+    setTargetLanguage(temp);
+  };
+
   useEffect(() => {
     return () => {
       if (isRecording) {
-        stopRecording();
+        stopSession();
       }
     };
   }, []);
 
+  const getStatusText = () => {
+    switch (connectionStatus) {
+      case 'connected': return '已连接';
+      case 'connecting': return '连接中';
+      default: return '未连接';
+    }
+  };
+
+  const getStatusClass = () => {
+    switch (connectionStatus) {
+      case 'connected': return 'connected';
+      case 'connecting': return 'connecting';
+      default: return 'disconnected';
+    }
+  };
+
   return (
-    <div className="slide-up">
-      {/* Hero Section */}
-      <div className="card mb-8">
-        <div className="card-content text-center">
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📱</div>
-          <h2 className="heading-2 mb-2">手机音频翻译</h2>
-          <p className="text-caption mb-4">
-            实时捕获并翻译手机播放的音频内容
-          </p>
-          
-          {/* Connection Status */}
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <div className={`status-dot ${
-              connectionStatus === 'connected' ? 'online' : 
-              connectionStatus === 'error' ? 'error' : 'offline'
-            }`}></div>
-            <span className="text-small">
-              {connectionStatus === 'connected' ? '已连接' : 
-               connectionStatus === 'connecting' ? '连接中...' :
-               connectionStatus === 'error' ? '连接错误' : '未连接'}
-            </span>
-          </div>
-        </div>
+    <div className="phone-audio-translator">
+      {/* 状态指示器 */}
+      <div className={`status-indicator ${getStatusClass()}`}>
+        <div className="status-dot"></div>
+        <span>{getStatusText()}</span>
       </div>
 
-      {/* Language Selection */}
-      <div className="card mb-6">
-        <div className="card-header">
-          <h3 className="heading-3">语言设置</h3>
-        </div>
-        <div className="card-content">
-          <div className="flex gap-4">
-            <div className="form-group flex-1">
-              <label className="form-label">源语言</label>
-              <select 
-                value={sourceLanguage} 
-                onChange={(e) => setSourceLanguage(e.target.value)}
-                className="form-select"
-                disabled={isRecording}
-              >
-                {languages.map(lang => (
-                  <option key={lang.code} value={lang.code}>
-                    {lang.flag} {lang.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="form-group flex-1">
-              <label className="form-label">目标语言</label>
-              <select 
-                value={targetLanguage} 
-                onChange={(e) => setTargetLanguage(e.target.value)}
-                className="form-select"
-                disabled={isRecording}
-              >
-                {languages.map(lang => (
-                  <option key={lang.code} value={lang.code}>
-                    {lang.flag} {lang.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Audio Level Display */}
-      {isRecording && (
-        <div className="card mb-6">
-          <div className="card-content">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-caption">音频级别</span>
-              <span className="text-small">{Math.round(audioLevel)}%</span>
-            </div>
-            <div className="progress-bar">
-              <div 
-                className="progress-fill" 
-                style={{ width: `${audioLevel}%` }}
-              ></div>
-            </div>
-            
-            {/* Audio Visualizer */}
-            <div className="audio-visualizer mt-4">
-              {[...Array(7)].map((_, i) => (
-                <div key={i} className="audio-bar"></div>
+      {/* 语言设置 */}
+      <div className="language-settings">
+        <h3>语言设置</h3>
+        <div className="language-row">
+          <div className="language-group">
+            <label className="language-label">源语言</label>
+            <select 
+              className="language-select"
+              value={sourceLanguage}
+              onChange={(e) => setSourceLanguage(e.target.value)}
+              disabled={isRecording}
+            >
+              {languages.map(lang => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.flag} {lang.name}
+                </option>
               ))}
-            </div>
+            </select>
+          </div>
+          
+          <button 
+            className="secondary-button"
+            onClick={swapLanguages}
+            disabled={isRecording}
+            style={{ alignSelf: 'flex-end', marginBottom: '1rem' }}
+          >
+            ⇄
+          </button>
+          
+          <div className="language-group">
+            <label className="language-label">目标语言</label>
+            <select 
+              className="language-select"
+              value={targetLanguage}
+              onChange={(e) => setTargetLanguage(e.target.value)}
+              disabled={isRecording}
+            >
+              {languages.map(lang => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.flag} {lang.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* 音频级别指示器 */}
+      {isRecording && (
+        <div className="audio-level-container" style={{ marginBottom: '1.5rem' }}>
+          <div className="audio-level-label">音频级别</div>
+          <div className="audio-level-bar">
+            <div 
+              className="audio-level-fill"
+              style={{ 
+                width: `${audioLevel}%`,
+                background: `linear-gradient(90deg, #00d4ff ${audioLevel}%, transparent ${audioLevel}%)`,
+                height: '8px',
+                borderRadius: '4px',
+                transition: 'width 0.1s ease'
+              }}
+            ></div>
           </div>
         </div>
       )}
 
-      {/* Control Buttons */}
-      <div className="flex gap-3 justify-center mb-6">
+      {/* 控制按钮 */}
+      <div className="control-buttons" style={{ marginBottom: '1.5rem' }}>
         {!isRecording ? (
           <button 
-            className="btn btn-primary btn-lg"
-            onClick={startRecording}
-            style={{ minWidth: '160px' }}
+            className="primary-button"
+            onClick={startSession}
+            disabled={connectionStatus === 'connecting'}
           >
-            <span style={{ fontSize: '1.2rem' }}>🎤</span>
-            开始录音
+            {connectionStatus === 'connecting' ? '连接中...' : '开始翻译'}
           </button>
         ) : (
           <button 
-            className="btn btn-secondary btn-lg"
-            onClick={stopRecording}
-            style={{ minWidth: '160px' }}
+            className="primary-button"
+            onClick={stopSession}
+            style={{ 
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              boxShadow: '0 6px 24px rgba(239, 68, 68, 0.3)'
+            }}
           >
-            <span style={{ fontSize: '1.2rem' }}>⏹️</span>
-            停止录音
+            停止翻译
           </button>
         )}
         
         {translations.length > 0 && (
           <button 
-            className="btn btn-ghost"
+            className="secondary-button"
             onClick={clearTranslations}
+            style={{ marginTop: '0.75rem' }}
           >
-            清除记录
+            清除历史
           </button>
         )}
       </div>
 
-      {/* Translation Status */}
+      {/* 翻译状态 */}
       {isTranslating && (
-        <div className="card mb-6">
-          <div className="card-content text-center">
-            <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
-            <p className="text-caption">正在翻译音频内容...</p>
-          </div>
-        </div>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div className="card mb-6" style={{ 
-          borderColor: '#ef4444',
-          background: '#fef2f2'
+        <div className="translation-status" style={{ 
+          textAlign: 'center', 
+          marginBottom: '1.5rem',
+          color: 'var(--color-text-accent)',
+          fontSize: 'var(--font-size-sm)'
         }}>
-          <div className="card-content">
-            <div className="flex items-center gap-2">
-              <span style={{ color: '#ef4444', fontSize: '1.2rem' }}>⚠️</span>
-              <span style={{ color: '#dc2626' }}>{error}</span>
-            </div>
-          </div>
+          <div className="pulse">正在翻译...</div>
         </div>
       )}
 
-      {/* Translation Results */}
+      {/* 错误信息 */}
+      {error && (
+        <div className="error-message" style={{
+          background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.1) 100%)',
+          color: '#fca5a5',
+          padding: 'var(--spacing-md)',
+          borderRadius: 'var(--radius-md)',
+          marginBottom: 'var(--spacing-lg)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          fontSize: 'var(--font-size-sm)'
+        }}>
+          {error}
+        </div>
+      )}
+
+      {/* 翻译结果 */}
       {translations.length > 0 && (
-        <div className="card">
-          <div className="card-header">
-            <div className="flex justify-between items-center">
-              <h3 className="heading-3">翻译结果</h3>
-              <span className="text-small">共 {translations.length} 条</span>
-            </div>
-          </div>
-          <div className="card-content">
-            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              {translations.map((translation, index) => (
-                <div 
-                  key={translation.id}
-                  className="card mb-4 scale-in"
-                  style={{ 
-                    animationDelay: `${index * 0.1}s`,
-                    background: 'var(--bg-secondary)'
-                  }}
-                >
-                  <div className="card-content">
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-small">{translation.timestamp}</span>
-                      <span 
-                        className="text-small rounded-full"
-                        style={{ 
-                          padding: '0.25rem 0.5rem',
-                          background: translation.confidence > 0.7 ? '#dcfce7' : '#fef3c7',
-                          color: translation.confidence > 0.7 ? '#166534' : '#92400e'
-                        }}
-                      >
-                        {Math.round(translation.confidence * 100)}%
-                      </span>
-                    </div>
-                    
-                    <div className="mb-3">
-                      <div className="text-small mb-1" style={{ color: 'var(--text-tertiary)' }}>
-                        原文 ({translation.sourceLanguage}):
-                      </div>
-                      <div className="text-body">{translation.original}</div>
-                    </div>
-                    
-                    <div>
-                      <div className="text-small mb-1" style={{ color: 'var(--text-tertiary)' }}>
-                        译文 ({translation.targetLanguage}):
-                      </div>
-                      <div className="text-body" style={{ 
-                        color: 'var(--primary-600)',
-                        fontWeight: 'var(--font-medium)'
-                      }}>
-                        {translation.translated}
-                      </div>
-                    </div>
-                  </div>
+        <div className="translations-container">
+          <h3 style={{ 
+            fontSize: 'var(--font-size-xl)',
+            marginBottom: 'var(--spacing-md)',
+            color: 'var(--color-text-primary)',
+            textAlign: 'center'
+          }}>
+            翻译结果
+          </h3>
+          <div className="translations-list" style={{
+            maxHeight: '300px',
+            overflowY: 'auto',
+            padding: 'var(--spacing-sm)'
+          }}>
+            {translations.map((translation) => (
+              <div 
+                key={translation.id} 
+                className="translation-item fade-in"
+                style={{
+                  background: 'var(--glass-bg)',
+                  backdropFilter: 'var(--glass-backdrop)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: 'var(--spacing-md)',
+                  marginBottom: 'var(--spacing-sm)',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+              >
+                <div className="translation-header" style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 'var(--spacing-xs)',
+                  fontSize: 'var(--font-size-xs)',
+                  color: 'var(--color-text-muted)'
+                }}>
+                  <span>{translation.timestamp}</span>
+                  {translation.confidence > 0 && (
+                    <span>置信度: {Math.round(translation.confidence * 100)}%</span>
+                  )}
                 </div>
-              ))}
-            </div>
+                {translation.original && (
+                  <div className="original-text" style={{
+                    fontSize: 'var(--font-size-sm)',
+                    color: 'var(--color-text-secondary)',
+                    marginBottom: 'var(--spacing-xs)',
+                    fontStyle: 'italic'
+                  }}>
+                    原文: {translation.original}
+                  </div>
+                )}
+                <div className="translated-text" style={{
+                  fontSize: 'var(--font-size-base)',
+                  color: 'var(--color-text-primary)',
+                  fontWeight: '500'
+                }}>
+                  {translation.translated}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Usage Instructions */}
-      {!isRecording && translations.length === 0 && (
-        <div className="card">
-          <div className="card-header">
-            <h3 className="heading-3">使用说明</h3>
-          </div>
-          <div className="card-content">
-            <div className="flex flex-col gap-3">
-              <div className="flex items-start gap-3">
-                <span style={{ 
-                  background: 'var(--primary-100)',
-                  color: 'var(--primary-600)',
-                  borderRadius: 'var(--radius-full)',
-                  width: '24px',
-                  height: '24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.75rem',
-                  fontWeight: 'var(--font-semibold)',
-                  flexShrink: 0
-                }}>
-                  1
-                </span>
-                <span className="text-body">选择源语言和目标语言</span>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <span style={{ 
-                  background: 'var(--primary-100)',
-                  color: 'var(--primary-600)',
-                  borderRadius: 'var(--radius-full)',
-                  width: '24px',
-                  height: '24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.75rem',
-                  fontWeight: 'var(--font-semibold)',
-                  flexShrink: 0
-                }}>
-                  2
-                </span>
-                <span className="text-body">点击"开始录音"按钮开始捕获音频</span>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <span style={{ 
-                  background: 'var(--primary-100)',
-                  color: 'var(--primary-600)',
-                  borderRadius: 'var(--radius-full)',
-                  width: '24px',
-                  height: '24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.75rem',
-                  fontWeight: 'var(--font-semibold)',
-                  flexShrink: 0
-                }}>
-                  3
-                </span>
-                <span className="text-body">播放手机中的音频内容</span>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <span style={{ 
-                  background: 'var(--primary-100)',
-                  color: 'var(--primary-600)',
-                  borderRadius: 'var(--radius-full)',
-                  width: '24px',
-                  height: '24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.75rem',
-                  fontWeight: 'var(--font-semibold)',
-                  flexShrink: 0
-                }}>
-                  4
-                </span>
-                <span className="text-body">系统将自动识别并翻译音频中的语音</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 使用说明 */}
+      <div className="usage-instructions">
+        <h3>使用说明</h3>
+        <ol>
+          <li>选择源语言和目标语言</li>
+          <li>点击"开始翻译"按钮</li>
+          <li>允许浏览器访问麦克风权限</li>
+          <li>开始说话，系统将实时翻译</li>
+          <li>翻译结果会实时显示在下方</li>
+          <li>点击"停止翻译"结束会话</li>
+        </ol>
+      </div>
     </div>
   );
 };
