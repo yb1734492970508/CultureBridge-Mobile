@@ -1,60 +1,55 @@
 import React, { useState, useEffect } from 'react';
 
 const CrossBorderVoiceCall = () => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [isInCall, setIsInCall] = useState(false);
-  const [myLanguage, setMyLanguage] = useState('zh');
-  const [partnerLanguage, setPartnerLanguage] = useState('en');
+  const [isCallActive, setIsCallActive] = useState(false);
+  const [myLanguage, setMyLanguage] = useState('zh-CN');
+  const [partnerLanguage, setPartnerLanguage] = useState('en-US');
+  const [callQuality, setCallQuality] = useState(0);
+  const [translationDelay, setTranslationDelay] = useState(0);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
-  const [audioLevel, setAudioLevel] = useState(0);
-  const [connectionQuality, setConnectionQuality] = useState('excellent');
 
-  const languages = [
-    { code: 'zh', name: '🇨🇳 中文', flag: '🇨🇳' },
-    { code: 'en', name: '🇺🇸 English', flag: '🇺🇸' },
-    { code: 'es', name: '🇪🇸 Español', flag: '🇪🇸' },
-    { code: 'fr', name: '🇫🇷 Français', flag: '🇫🇷' },
-    { code: 'de', name: '🇩🇪 Deutsch', flag: '🇩🇪' },
-    { code: 'ja', name: '🇯🇵 日本語', flag: '🇯🇵' },
-    { code: 'ko', name: '🇰🇷 한국어', flag: '🇰🇷' },
-    { code: 'ar', name: '🇸🇦 العربية', flag: '🇸🇦' },
-    { code: 'ru', name: '🇷🇺 Русский', flag: '🇷🇺' }
-  ];
-
-  // 模拟通话计时
+  // 模拟通话质量和延迟
   useEffect(() => {
-    if (isInCall) {
-      const interval = setInterval(() => {
+    let interval;
+    if (isCallActive) {
+      interval = setInterval(() => {
+        setCallQuality(85 + Math.random() * 15); // 85-100%
+        setTranslationDelay(100 + Math.random() * 200); // 100-300ms
         setCallDuration(prev => prev + 1);
       }, 1000);
-      return () => clearInterval(interval);
     } else {
+      setCallQuality(0);
+      setTranslationDelay(0);
       setCallDuration(0);
     }
-  }, [isInCall]);
+    return () => clearInterval(interval);
+  }, [isCallActive]);
 
-  // 模拟音频级别和连接质量
-  useEffect(() => {
-    if (isInCall) {
-      const interval = setInterval(() => {
-        setAudioLevel(Math.random() * 100);
-        const qualities = ['excellent', 'good', 'fair', 'poor'];
-        setConnectionQuality(qualities[Math.floor(Math.random() * qualities.length)]);
-      }, 1000);
-      return () => clearInterval(interval);
+  const languages = [
+    { code: 'zh-CN', name: '中文（简体）' },
+    { code: 'en-US', name: 'English (US)' },
+    { code: 'ja-JP', name: '日本語' },
+    { code: 'ko-KR', name: '한국어' },
+    { code: 'es-ES', name: 'Español' },
+    { code: 'fr-FR', name: 'Français' },
+    { code: 'de-DE', name: 'Deutsch' },
+    { code: 'it-IT', name: 'Italiano' },
+    { code: 'pt-PT', name: 'Português' },
+    { code: 'ru-RU', name: 'Русский' }
+  ];
+
+  const handleCall = async () => {
+    if (isCallActive) {
+      setIsCallActive(false);
+      setIsConnecting(false);
     } else {
-      setAudioLevel(0);
-      setConnectionQuality('excellent');
-    }
-  }, [isInCall]);
-
-  const handleConnect = () => {
-    setIsConnected(!isConnected);
-  };
-
-  const handleStartCall = () => {
-    if (isConnected) {
-      setIsInCall(!isInCall);
+      setIsConnecting(true);
+      // 模拟连接过程
+      setTimeout(() => {
+        setIsConnecting(false);
+        setIsCallActive(true);
+      }, 2000);
     }
   };
 
@@ -70,353 +65,271 @@ const CrossBorderVoiceCall = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getStatusText = () => {
-    if (!isConnected) return '未连接';
-    if (isInCall) return '通话中';
-    return '已连接';
+  const getQualityColor = (quality) => {
+    if (quality >= 90) return 'var(--color-secondary-teal)';
+    if (quality >= 70) return 'var(--color-accent-orange)';
+    return '#EF4444';
   };
 
-  const getStatusClass = () => {
-    if (!isConnected) return 'disconnected';
-    if (isInCall) return 'connecting';
-    return 'connected';
-  };
-
-  const getQualityColor = () => {
-    switch (connectionQuality) {
-      case 'excellent': return 'var(--color-secondary-green)';
-      case 'good': return 'var(--color-accent-orange)';
-      case 'fair': return '#F59E0B';
-      case 'poor': return 'var(--color-accent-red)';
-      default: return 'var(--color-secondary-green)';
-    }
-  };
-
-  const getQualityText = () => {
-    switch (connectionQuality) {
-      case 'excellent': return '优秀';
-      case 'good': return '良好';
-      case 'fair': return '一般';
-      case 'poor': return '较差';
-      default: return '优秀';
-    }
+  const getDelayColor = (delay) => {
+    if (delay <= 150) return 'var(--color-secondary-teal)';
+    if (delay <= 250) return 'var(--color-accent-orange)';
+    return '#EF4444';
   };
 
   return (
-    <div className="voice-call-translator">
-      {/* 连接状态 */}
-      <div className={`status-indicator ${getStatusClass()}`}>
-        <span className="status-dot"></span>
-        {getStatusText()}
+    <div>
+      {/* 我的语言设置 */}
+      <div className="control-group">
+        <label className="control-label">我的语言</label>
+        <select 
+          className="control-select"
+          value={myLanguage}
+          onChange={(e) => setMyLanguage(e.target.value)}
+          disabled={isCallActive || isConnecting}
+        >
+          {languages.map(lang => (
+            <option key={lang.code} value={lang.code}>
+              {lang.name}
+            </option>
+          ))}
+        </select>
       </div>
 
-      {/* 通话信息 */}
-      {isInCall && (
-        <div className="call-info">
-          <div className="call-duration">
-            <div className="duration-label">通话时长</div>
-            <div className="duration-value">{formatDuration(callDuration)}</div>
+      <div style={{ textAlign: 'center', margin: '1rem 0' }}>
+        <button 
+          className="btn btn-secondary"
+          onClick={swapLanguages}
+          disabled={isCallActive || isConnecting}
+          style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+        >
+          ⇄ 交换语言
+        </button>
+      </div>
+
+      {/* 对方语言设置 */}
+      <div className="control-group">
+        <label className="control-label">对方语言</label>
+        <select 
+          className="control-select"
+          value={partnerLanguage}
+          onChange={(e) => setPartnerLanguage(e.target.value)}
+          disabled={isCallActive || isConnecting}
+        >
+          {languages.map(lang => (
+            <option key={lang.code} value={lang.code}>
+              {lang.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* 通话状态 */}
+      <div className="control-group">
+        <div className={`status-indicator ${
+          isCallActive ? 'status-connected' : 
+          isConnecting ? 'status-connected' : 
+          'status-disconnected'
+        }`}>
+          <div className="status-dot"></div>
+          <span>
+            {isCallActive ? '通话中' : 
+             isConnecting ? '连接中...' : 
+             '未连接'}
+          </span>
+        </div>
+      </div>
+
+      {/* 通话时长 */}
+      {isCallActive && (
+        <div className="control-group">
+          <div style={{
+            textAlign: 'center',
+            fontSize: '1.5rem',
+            fontWeight: '600',
+            color: 'var(--color-gray-800)',
+            padding: '1rem',
+            backgroundColor: 'rgba(124, 58, 237, 0.05)',
+            borderRadius: '0.75rem',
+            border: '1px solid rgba(124, 58, 237, 0.1)'
+          }}>
+            {formatDuration(callDuration)}
           </div>
-          <div className="connection-quality">
-            <div className="quality-label">连接质量</div>
-            <div 
-              className="quality-value"
-              style={{ color: getQualityColor() }}
-            >
-              {getQualityText()}
+        </div>
+      )}
+
+      {/* 通话质量指标 */}
+      {isCallActive && (
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: '1fr 1fr', 
+          gap: '1rem',
+          marginBottom: '1rem'
+        }}>
+          <div style={{
+            padding: '1rem',
+            backgroundColor: 'rgba(16, 185, 129, 0.05)',
+            borderRadius: '0.75rem',
+            border: '1px solid rgba(16, 185, 129, 0.1)',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              fontSize: '1.25rem',
+              fontWeight: '600',
+              color: getQualityColor(callQuality),
+              marginBottom: '0.25rem'
+            }}>
+              {Math.round(callQuality)}%
+            </div>
+            <div style={{
+              fontSize: '0.75rem',
+              color: 'var(--color-gray-500)'
+            }}>
+              通话质量
+            </div>
+          </div>
+
+          <div style={{
+            padding: '1rem',
+            backgroundColor: 'rgba(249, 115, 22, 0.05)',
+            borderRadius: '0.75rem',
+            border: '1px solid rgba(249, 115, 22, 0.1)',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              fontSize: '1.25rem',
+              fontWeight: '600',
+              color: getDelayColor(translationDelay),
+              marginBottom: '0.25rem'
+            }}>
+              {Math.round(translationDelay)}ms
+            </div>
+            <div style={{
+              fontSize: '0.75rem',
+              color: 'var(--color-gray-500)'
+            }}>
+              翻译延迟
             </div>
           </div>
         </div>
       )}
 
-      {/* 语言设置 */}
-      <div className="language-settings">
-        <h3>语言设置</h3>
-        <div className="language-row">
-          <div className="language-group">
-            <label className="language-label">我的语言</label>
-            <select 
-              className="language-select"
-              value={myLanguage}
-              onChange={(e) => setMyLanguage(e.target.value)}
-              disabled={isInCall}
-            >
-              {languages.map(lang => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <button 
-            className="swap-button"
-            onClick={swapLanguages}
-            disabled={isInCall}
-            title="交换语言"
-          >
-            ⇄
-          </button>
-          
-          <div className="language-group">
-            <label className="language-label">对方语言</label>
-            <select 
-              className="language-select"
-              value={partnerLanguage}
-              onChange={(e) => setPartnerLanguage(e.target.value)}
-              disabled={isInCall}
-            >
-              {languages.map(lang => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+      {/* 通话控制按钮 */}
+      <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+        <button 
+          className={`btn ${
+            isCallActive ? 'btn-secondary' : 
+            isConnecting ? 'btn-secondary' : 
+            'btn-primary'
+          }`}
+          onClick={handleCall}
+          disabled={isConnecting}
+          style={{ 
+            minWidth: '200px',
+            backgroundColor: isCallActive ? '#EF4444' : undefined,
+            color: isCallActive ? 'white' : undefined
+          }}
+        >
+          {isCallActive ? '结束通话' : 
+           isConnecting ? '连接中...' : 
+           '开始通话'}
+        </button>
       </div>
 
-      {/* 音频级别显示 */}
-      {isInCall && (
-        <div className="audio-level-display">
-          <div className="audio-level-label">语音活动</div>
-          <div className="audio-level-bar">
-            <div 
-              className="audio-level-fill"
-              style={{ 
-                width: `${audioLevel}%`,
-                background: `linear-gradient(90deg, var(--color-secondary-green) 0%, var(--color-accent-orange) 50%, var(--color-accent-red) 100%)`
-              }}
-            ></div>
+      {/* 实时翻译示例 */}
+      {isCallActive && (
+        <div style={{ marginTop: '2rem' }}>
+          <div style={{
+            padding: '1rem',
+            backgroundColor: 'rgba(124, 58, 237, 0.05)',
+            borderRadius: '0.75rem',
+            border: '1px solid rgba(124, 58, 237, 0.1)',
+            marginBottom: '1rem'
+          }}>
+            <h4 style={{
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              color: 'var(--color-secondary-purple)',
+              marginBottom: '0.5rem'
+            }}>
+              实时翻译
+            </h4>
+            <div style={{
+              fontSize: '0.875rem',
+              color: 'var(--color-gray-500)',
+              marginBottom: '0.5rem'
+            }}>
+              您说: "Hello, how are you today?"
+            </div>
+            <div style={{
+              fontSize: '1rem',
+              color: 'var(--color-gray-800)',
+              fontWeight: '500'
+            }}>
+              翻译: "你好，你今天怎么样？"
+            </div>
           </div>
-          <div className="audio-level-value">{Math.round(audioLevel)}%</div>
-        </div>
-      )}
 
-      {/* 控制按钮 */}
-      <div className="control-buttons">
-        {!isConnected ? (
-          <button 
-            className="primary-button"
-            onClick={handleConnect}
-          >
-            连接语音服务
-          </button>
-        ) : !isInCall ? (
-          <button 
-            className="primary-button"
-            onClick={handleStartCall}
-            style={{
-              background: 'var(--gradient-button-secondary)'
-            }}
-          >
-            开始通话
-          </button>
-        ) : (
-          <div className="call-controls">
-            <button 
-              className="call-control-button mute"
-              title="静音"
-            >
-              🔇
-            </button>
-            <button 
-              className="call-control-button end-call"
-              onClick={handleStartCall}
-              title="结束通话"
-            >
-              📞
-            </button>
-            <button 
-              className="call-control-button speaker"
-              title="扬声器"
-            >
-              🔊
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* 翻译结果区域 */}
-      {isInCall && (
-        <div className="translation-results">
-          <div className="translation-item">
-            <div className="translation-label">我说的话</div>
-            <div className="translation-text">等待语音输入...</div>
-          </div>
-          <div className="translation-item">
-            <div className="translation-label">翻译给对方</div>
-            <div className="translation-text">等待翻译结果...</div>
-          </div>
-          <div className="translation-item">
-            <div className="translation-label">对方说的话</div>
-            <div className="translation-text">等待对方语音...</div>
-          </div>
-          <div className="translation-item">
-            <div className="translation-label">翻译给我</div>
-            <div className="translation-text">等待翻译结果...</div>
+          <div style={{
+            padding: '1rem',
+            backgroundColor: 'rgba(16, 185, 129, 0.05)',
+            borderRadius: '0.75rem',
+            border: '1px solid rgba(16, 185, 129, 0.1)'
+          }}>
+            <h4 style={{
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              color: 'var(--color-secondary-teal-dark)',
+              marginBottom: '0.5rem'
+            }}>
+              对方回复
+            </h4>
+            <div style={{
+              fontSize: '0.875rem',
+              color: 'var(--color-gray-500)',
+              marginBottom: '0.5rem'
+            }}>
+              对方说: "我很好，谢谢！"
+            </div>
+            <div style={{
+              fontSize: '1rem',
+              color: 'var(--color-gray-800)',
+              fontWeight: '500'
+            }}>
+              翻译: "I'm fine, thank you!"
+            </div>
           </div>
         </div>
       )}
 
       {/* 使用说明 */}
-      <div className="usage-instructions">
-        <h3>使用说明</h3>
-        <ol>
-          <li>设置我的语言和对方语言</li>
-          <li>点击"连接语音服务"按钮</li>
-          <li>允许浏览器访问麦克风权限</li>
+      <div style={{ 
+        marginTop: '2rem', 
+        padding: '1rem', 
+        backgroundColor: 'rgba(124, 58, 237, 0.05)', 
+        borderRadius: '0.75rem',
+        border: '1px solid rgba(124, 58, 237, 0.1)'
+      }}>
+        <h4 style={{ 
+          fontSize: '0.875rem', 
+          fontWeight: '600', 
+          color: 'var(--color-secondary-purple)',
+          marginBottom: '0.5rem'
+        }}>
+          使用说明
+        </h4>
+        <ul style={{ 
+          fontSize: '0.875rem', 
+          color: 'var(--color-gray-500)',
+          lineHeight: '1.5',
+          paddingLeft: '1rem'
+        }}>
+          <li>设置您和对方的语言</li>
           <li>点击"开始通话"建立连接</li>
-          <li>开始对话，系统会实时双向翻译</li>
-          <li>使用控制按钮管理通话状态</li>
-        </ol>
+          <li>系统将实时翻译双方的语音</li>
+          <li>监控通话质量和翻译延迟</li>
+        </ul>
       </div>
-
-      <style jsx>{`
-        .call-info {
-          display: flex;
-          justify-content: space-between;
-          margin: var(--spacing-lg) 0;
-          padding: var(--spacing-lg);
-          background: var(--gradient-card);
-          border-radius: var(--radius-lg);
-          border: 1px solid var(--color-border);
-        }
-
-        .call-duration, .connection-quality {
-          text-align: center;
-        }
-
-        .duration-label, .quality-label {
-          font-size: var(--font-size-sm);
-          color: var(--color-text-secondary);
-          margin-bottom: var(--spacing-xs);
-        }
-
-        .duration-value {
-          font-size: var(--font-size-xl);
-          font-weight: 700;
-          color: var(--color-text-accent);
-          font-family: 'Courier New', monospace;
-        }
-
-        .quality-value {
-          font-size: var(--font-size-lg);
-          font-weight: 600;
-        }
-
-        .audio-level-display {
-          margin: var(--spacing-lg) 0;
-          padding: var(--spacing-lg);
-          background: var(--gradient-card);
-          border-radius: var(--radius-lg);
-          border: 1px solid var(--color-border);
-        }
-
-        .audio-level-label {
-          font-size: var(--font-size-sm);
-          font-weight: 600;
-          color: var(--color-text-secondary);
-          margin-bottom: var(--spacing-sm);
-          text-align: center;
-        }
-
-        .audio-level-bar {
-          width: 100%;
-          height: 8px;
-          background: var(--color-border-light);
-          border-radius: var(--radius-full);
-          overflow: hidden;
-          margin-bottom: var(--spacing-sm);
-        }
-
-        .audio-level-fill {
-          height: 100%;
-          transition: width 0.1s ease-out;
-          border-radius: var(--radius-full);
-        }
-
-        .audio-level-value {
-          font-size: var(--font-size-sm);
-          font-weight: 600;
-          color: var(--color-text-accent);
-          text-align: center;
-        }
-
-        .call-controls {
-          display: flex;
-          justify-content: center;
-          gap: var(--spacing-lg);
-          margin: var(--spacing-xl) 0;
-        }
-
-        .call-control-button {
-          width: 60px;
-          height: 60px;
-          border-radius: var(--radius-full);
-          border: none;
-          font-size: var(--font-size-xl);
-          cursor: pointer;
-          transition: all var(--transition-bounce);
-          box-shadow: var(--shadow-md);
-        }
-
-        .call-control-button.mute {
-          background: var(--gradient-button-primary);
-        }
-
-        .call-control-button.end-call {
-          background: linear-gradient(135deg, var(--color-accent-red) 0%, #dc2626 100%);
-        }
-
-        .call-control-button.speaker {
-          background: var(--gradient-button-secondary);
-        }
-
-        .call-control-button:hover {
-          transform: scale(1.1);
-          box-shadow: var(--shadow-lg);
-        }
-
-        .translation-results {
-          margin-top: var(--spacing-xl);
-          padding: var(--spacing-lg);
-          background: var(--gradient-card);
-          border-radius: var(--radius-lg);
-          border: 1px solid var(--color-border);
-        }
-
-        .translation-item {
-          margin-bottom: var(--spacing-lg);
-        }
-
-        .translation-item:last-child {
-          margin-bottom: 0;
-        }
-
-        .translation-label {
-          font-size: var(--font-size-sm);
-          font-weight: 600;
-          color: var(--color-text-accent);
-          margin-bottom: var(--spacing-xs);
-        }
-
-        .translation-text {
-          font-size: var(--font-size-base);
-          color: var(--color-text-primary);
-          padding: var(--spacing-md);
-          background: var(--color-background);
-          border-radius: var(--radius-md);
-          border: 1px solid var(--color-border-light);
-          min-height: 50px;
-          display: flex;
-          align-items: center;
-        }
-
-        .control-buttons {
-          margin: var(--spacing-xl) 0;
-        }
-      `}</style>
     </div>
   );
 };

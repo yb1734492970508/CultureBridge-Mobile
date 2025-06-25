@@ -2,120 +2,123 @@ import React, { useState, useEffect } from 'react';
 import PhoneAudioTranslator from './components/PhoneAudioTranslator';
 import ExternalAudioTranslator from './components/ExternalAudioTranslator';
 import CrossBorderVoiceCall from './components/CrossBorderVoiceCall';
-import './styles/starbucks-level.css';
+import './styles/user-reference-design.css';
 
-// 导入星巴克级别的高级图标
-import phoneAudioIcon from './assets/icons/phone_audio_starbucks.png';
-import externalAudioIcon from './assets/icons/external_audio_starbucks.png';
-import voiceCallIcon from './assets/icons/voice_call_starbucks.png';
+// 导入图标
+import phoneIcon from './assets/icons/phone_audio_premium.png';
+import externalIcon from './assets/icons/external_audio_premium.png';
+import voiceIcon from './assets/icons/voice_call_premium.png';
 
 function App() {
   const [activeTab, setActiveTab] = useState('phone');
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // 添加优雅的加载动画
-    const timer = setTimeout(() => {
+    // 页面加载动画
+    setTimeout(() => {
       setIsLoaded(true);
-    }, 800);
-    return () => clearTimeout(timer);
+    }, 100);
   }, []);
 
   const tabs = [
     {
       id: 'phone',
       name: '手机音频',
-      icon: phoneAudioIcon,
-      component: PhoneAudioTranslator,
-      description: '实时翻译手机通话内容',
-      color: 'var(--color-primary-forest)'
+      icon: phoneIcon,
+      component: PhoneAudioTranslator
     },
     {
       id: 'external',
       name: '环境音频',
-      icon: externalAudioIcon,
-      component: ExternalAudioTranslator,
-      description: '捕获并翻译周围环境声音',
-      color: 'var(--color-primary-emerald)'
+      icon: externalIcon,
+      component: ExternalAudioTranslator
     },
     {
       id: 'voice',
       name: '语音通话',
-      icon: voiceCallIcon,
-      component: CrossBorderVoiceCall,
-      description: '跨语言实时语音通话',
-      color: 'var(--color-accent-gold)'
+      icon: voiceIcon,
+      component: CrossBorderVoiceCall
     }
   ];
 
   const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component;
-  const activeTabInfo = tabs.find(tab => tab.id === activeTab);
-
-  const handleTabChange = (tabId) => {
-    setActiveTab(tabId);
-    // 添加星巴克级别的切换动画效果
-    const mainContent = document.querySelector('.main-content');
-    if (mainContent) {
-      mainContent.style.opacity = '0';
-      mainContent.style.transform = 'translateY(30px)';
-      setTimeout(() => {
-        mainContent.style.opacity = '1';
-        mainContent.style.transform = 'translateY(0)';
-        mainContent.style.transition = 'all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-      }, 200);
-    }
-  };
 
   return (
     <div className={`app ${isLoaded ? 'fade-in' : ''}`}>
       <div className="app-container">
-        {/* 头部 - 星巴克级别深绿渐变背景 */}
+        {/* 头部 - 完全基于用户图片风格 */}
         <header className="app-header">
           <h1 className="app-title">CultureBridge</h1>
           <p className="app-subtitle">连接世界，消除语言障碍</p>
         </header>
 
-        {/* 导航标签 - 星巴克级别设计 */}
+        {/* 导航标签 - 基于用户图片的卡片式设计 */}
         <nav className="tab-navigation">
           {tabs.map((tab, index) => (
             <button
               key={tab.id}
               className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => handleTabChange(tab.id)}
-              style={{
-                animationDelay: `${index * 0.15}s`
-              }}
-              title={tab.description}
+              onClick={() => setActiveTab(tab.id)}
             >
-              <img 
-                src={tab.icon} 
-                alt={tab.name}
+              <div 
                 className="tab-icon"
                 style={{
-                  filter: activeTab === tab.id ? 'brightness(1.05) saturate(1.1)' : 'brightness(1)'
+                  backgroundImage: `url(${tab.icon})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat'
                 }}
               />
               <span className="tab-text">{tab.name}</span>
+              {/* 角标数字 - 基于用户图片风格 */}
+              <div style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                width: '20px',
+                height: '20px',
+                backgroundColor: index === 0 ? '#22C55E' : index === 1 ? '#3B82F6' : '#F97316',
+                color: 'white',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: '600'
+              }}>
+                {index + 1}
+              </div>
             </button>
           ))}
         </nav>
 
         {/* 主要内容区域 */}
         <main className="main-content">
-          {ActiveComponent && (
-            <div className="feature-card fade-in">
-              <div className="feature-header">
-                <img 
-                  src={activeTabInfo.icon} 
-                  alt={activeTabInfo.name}
-                  className="feature-icon"
-                />
-                <h2 className="feature-title">{activeTabInfo.name}</h2>
-                <p className="feature-description">{activeTabInfo.description}</p>
-              </div>
-              <ActiveComponent />
+          <div className="feature-card fade-in-up">
+            <div className="feature-header">
+              <div 
+                className="feature-icon"
+                style={{
+                  backgroundImage: `url(${tabs.find(tab => tab.id === activeTab)?.icon})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat'
+                }}
+              />
+              <h2 className="feature-title">
+                {tabs.find(tab => tab.id === activeTab)?.name}
+              </h2>
+              <p className="feature-description">
+                {activeTab === 'phone' && '实时翻译手机通话内容'}
+                {activeTab === 'external' && '捕获并翻译周围环境声音'}
+                {activeTab === 'voice' && '跨语言实时语音通话'}
+              </p>
             </div>
-          )}
+            
+            <div className="feature-content">
+              {ActiveComponent && <ActiveComponent />}
+            </div>
+          </div>
         </main>
       </div>
     </div>
