@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Play, Pause, RotateCcw } from 'lucide-react';
+import { Play, Pause, RotateCcw, Mic, Phone, Headphones } from 'lucide-react';
+import RealTimeTranslation from './RealTimeTranslation';
+import ExternalAudioTranslation from './ExternalAudioTranslation';
+import InternationalVoiceChat from './InternationalVoiceChat';
 
 const CultureTabs = () => {
   const [activeTab, setActiveTab] = useState('culture');
@@ -8,6 +11,9 @@ const CultureTabs = () => {
   const tabs = [
     { id: 'culture', label: 'Culture' },
     { id: 'language', label: 'Language' },
+    { id: 'translation', label: 'Translation' },
+    { id: 'external', label: 'External Audio' },
+    { id: 'voice-chat', label: 'Voice Chat' },
     { id: 'chat', label: 'Chat' }
   ];
 
@@ -119,6 +125,12 @@ const CultureTabs = () => {
         return renderCultureContent();
       case 'language':
         return renderLanguageContent();
+      case 'translation':
+        return <RealTimeTranslation />;
+      case 'external':
+        return <ExternalAudioTranslation />;
+      case 'voice-chat':
+        return <InternationalVoiceChat />;
       case 'chat':
         return renderChatContent();
       default:

@@ -3,6 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import LoginScreen from './components/LoginScreen';
 import MainApp from './components/MainApp';
 import './styles/modern-design.css';
+import './styles/RealTimeTranslation.css';
+import './styles/ExternalAudioTranslation.css';
+import './styles/InternationalVoiceChat.css';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
