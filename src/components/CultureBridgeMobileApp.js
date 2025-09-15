@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -18,6 +19,8 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Localization from 'expo-localization';
 import io from 'socket.io-client';
+
+import CourseScreen from '../screens/CourseScreen'; // Import the new CourseScreen
 
 const { width, height } = Dimensions.get('window');
 
@@ -73,7 +76,8 @@ const translations = {
     privacy: '隐私',
     about: '关于',
     logout: '退出登录',
-    call: '通话'
+    call: '通话',
+    courses: '课程' // Add translation for Courses
   },
   en: {
     appName: 'CultureBridge',
@@ -110,7 +114,8 @@ const translations = {
     privacy: 'Privacy',
     about: 'About',
     logout: 'Logout',
-    call: 'Call'
+    call: 'Call',
+    courses: 'Courses' // Add translation for Courses
   }
 };
 
@@ -177,6 +182,7 @@ const CultureBridgeMobileApp = () => {
         {currentTab === 'community' && <CommunityScreen currentLanguage={currentLanguage} />}
         {currentTab === 'profile' && <ProfileScreen currentLanguage={currentLanguage} user={user} onLogout={() => setUser(null)} toggleLanguage={toggleLanguage} />}
         {currentTab === 'call' && <CallScreen currentLanguage={currentLanguage} user={user} />}
+        {currentTab === 'courses' && <CourseScreen currentLanguage={currentLanguage} user={user} />} {/* Add CourseScreen */}
       </View>
 
       {/* 底部导航 */}
@@ -248,6 +254,20 @@ const CultureBridgeMobileApp = () => {
           />
           <Text style={[styles.navText, currentTab === 'community' && styles.activeNavText]}>
             {t.community}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.navItem, currentTab === 'courses' && styles.activeNavItem]} // Add Courses tab
+          onPress={() => setCurrentTab('courses')}
+        >
+          <Ionicons 
+            name={currentTab === 'courses' ? 'book' : 'book-outline'} // Use a suitable icon
+            size={24} 
+            color={currentTab === 'courses' ? colors.primary : colors.textGray} 
+          />
+          <Text style={[styles.navText, currentTab === 'courses' && styles.activeNavText]}>
+            {t.courses}
           </Text>
         </TouchableOpacity>
 
@@ -502,505 +522,84 @@ const ChatScreen = ({ currentLanguage, user }) => {
   };
 
   return (
-    <View style={styles.chatContainer}>
-      {/* 聊天头部 */}
-      <View style={styles.chatHeader}>
-        <View style={styles.chatUserInfo}>
-          <Image
-            source={{ uri: 'https://via.placeholder.com/40' }}
-            style={styles.chatAvatar}
-          />
-          <View>
-            <Text style={styles.chatUserName}>Maria Santos</Text>
-            <Text style={styles.chatUserStatus}>在线</Text>
+    <View style={styles.screenContainer}>
+      <Text style={styles.header}>Chat</Text>
+      <FlatList
+        data={messages}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <View style={[styles.messageBubble, item.sender === 'me' ? styles.myMessage : styles.otherMessage]}>
+            <Text style={styles.messageText}>{item.text}</Text>
+            {item.translated && <Text style={styles.translatedText}>{t.translated} {item.translated}</Text>}
+            <Text style={styles.timestamp}>{item.timestamp.toLocaleTimeString()}</Text>
           </View>
-        </View>
-        <TouchableOpacity style={styles.chatMenuButton}>
-          <Ionicons name="ellipsis-vertical" size={20} color={colors.textGray} />
-        </TouchableOpacity>
-      </View>
-
-      {/* 消息列表 */}
-      <ScrollView style={styles.messagesContainer} showsVerticalScrollIndicator={false}>
-        {messages.map((message) => (
-          <View
-            key={message.id}
-            style={[
-              styles.messageItem,
-              message.sender === 'me' ? styles.myMessage : styles.otherMessage
-            ]}
-          >
-            <View
-              style={[
-                styles.messageBubble,
-                message.sender === 'me' ? styles.myMessageBubble : styles.otherMessageBubble
-              ]}
-            >
-              <Text
-                style={[
-                  styles.messageText,
-                  message.sender === 'me' ? styles.myMessageText : null
-                ]}
-              >
-                {message.text}
-              </Text>
-              {message.translated && (
-                <Text
-                  style={[
-                    styles.messageText,
-                    styles.messageTranslatedText,
-                    message.sender === 'me' ? styles.myMessageText : null
-                  ]}
-                >
-                  {t.translated} {message.translated}
-                </Text>
-              )}
-              <Text style={styles.messageTimestamp}>
-                {new Date(message.timestamp).toLocaleTimeString()}
-              </Text>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
-
-      {/* 消息输入 */}
-      <View style={styles.chatInputContainer}>
+        )}
+      />
+      <View style={styles.inputContainer}>
         <TextInput
-          style={styles.chatTextInput}
-          placeholder={t.voiceMessage}
+          style={styles.input}
           value={inputText}
           onChangeText={setInputText}
+          placeholder="Type a message..."
         />
         <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-          <Ionicons name="send" size={20} color={colors.white} />
+          <Ionicons name="send" size={24} color="white" />
         </TouchableOpacity>
       </View>
     </View>
   );
 };
 
-// 社区屏幕组件
+// Translate Screen Component (Placeholder)
+const TranslateScreen = ({ currentLanguage }) => {
+  const t = translations[currentLanguage];
+  return (
+    <View style={styles.screenContainer}>
+      <Text style={styles.header}>Translate</Text>
+      <Text style={styles.placeholderText}>Translation feature coming soon!</Text>
+    </View>
+  );
+};
+
+// Community Screen Component (Placeholder)
 const CommunityScreen = ({ currentLanguage }) => {
   const t = translations[currentLanguage];
-
-  const communities = [
-    {
-      id: 1,
-      name: 'Spanish Learners',
-      description: 'Join us to practice Spanish and learn about Hispanic cultures.',
-    },
-    {
-      id: 2,
-      name: 'Japanese Culture',
-      description: 'Explore the rich traditions and modern trends of Japan.',
-    },
-    {
-      id: 3,
-      name: 'French Foodies',
-      description: 'Discuss French cuisine, recipes, and culinary traditions.',
-    },
-  ];
-
   return (
-    <ScrollView style={styles.screenContainer} showsVerticalScrollIndicator={false}>
-      <View style={styles.communityContainer}>
-        <Text style={styles.sectionTitle}>社区</Text>
-        {communities.map((community) => (
-          <View key={community.id} style={styles.communityCard}>
-            <Text style={styles.communityTitle}>{community.name}</Text>
-            <Text style={styles.communityDescription}>{community.description}</Text>
-            <TouchableOpacity style={styles.joinButton}>
-              <Text style={styles.joinButtonText}>加入</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
-        <View style={styles.communityCard}>
-          <Text style={styles.culturalTip}>{t.culturalTip}</Text>
-          <Text style={styles.culturalTipText}>{t.askAboutTraditions}</Text>
-        </View>
-      </View>
-    </ScrollView>
+    <View style={styles.screenContainer}>
+      <Text style={styles.header}>Community</Text>
+      <Text style={styles.placeholderText}>Join our global community!</Text>
+    </View>
   );
 };
 
-// 个人资料屏幕组件
+// Profile Screen Component (Placeholder)
 const ProfileScreen = ({ currentLanguage, user, onLogout, toggleLanguage }) => {
   const t = translations[currentLanguage];
-
   return (
-    <ScrollView style={styles.screenContainer} showsVerticalScrollIndicator={false}>
-      <View style={styles.profileContainer}>
-        {/* 个人资料头部 */}
-        <LinearGradient colors={[colors.primary, colors.green]} style={styles.profileHeader}>
-          <Image
-            source={{ uri: user.profile.avatar }}
-            style={styles.profileAvatar}
-          />
-          <Text style={styles.profileName}>{user.username}</Text>
-          <Text style={styles.profileUsername}>{user.email}</Text>
-          <View style={styles.profileStats}>
-            <View style={styles.profileStatItem}>
-              <Text style={styles.profileStatNumber}>1200</Text>
-              <Text style={styles.profileStatLabel}>积分</Text>
-            </View>
-            <View style={styles.profileStatItem}>
-              <Text style={styles.profileStatNumber}>15</Text>
-              <Text style={styles.profileStatLabel}>连胜</Text>
-            </View>
-            <View style={styles.profileStatItem}>
-              <Text style={styles.profileStatNumber}>8</Text>
-              <Text style={styles.profileStatLabel}>成就</Text>
-            </View>
-          </View>
-        </LinearGradient>
-
-        {/* 设置选项 */}
-        <View style={styles.profileSection}>
-          <Text style={styles.profileSectionTitle}>{t.settings}</Text>
-          <TouchableOpacity style={styles.profileOption}>
-            <Ionicons name="notifications-outline" size={20} color={colors.textGray} />
-            <Text style={styles.profileOptionText}>{t.notifications}</Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.textGray} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.profileOption} onPress={toggleLanguage}>
-            <Ionicons name="language-outline" size={20} color={colors.textGray} />
-            <Text style={styles.profileOptionText}>{t.language}</Text>
-            <Text style={styles.profileOptionValue}>{currentLanguage === 'zh' ? '中文' : 'English'}</Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.textGray} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.profileOption}>
-            <Ionicons name="lock-closed-outline" size={20} color={colors.textGray} />
-            <Text style={styles.profileOptionText}>{t.privacy}</Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.textGray} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.profileOption}>
-            <Ionicons name="information-circle-outline" size={20} color={colors.textGray} />
-            <Text style={styles.profileOptionText}>{t.about}</Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.textGray} />
-          </TouchableOpacity>
-        </View>
-
-        {/* 退出登录按钮 */}
-        <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
-          <Text style={styles.logoutButtonText}>{t.logout}</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+    <View style={styles.screenContainer}>
+      <Text style={styles.header}>Profile</Text>
+      {user && <Text>Welcome, {user.username}!</Text>}
+      <TouchableOpacity onPress={onLogout} style={styles.logoutButton}>
+        <Text style={styles.logoutButtonText}>{t.logout}</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={toggleLanguage} style={styles.languageButton}>
+        <Text style={styles.languageButtonText}>{currentLanguage === 'zh' ? 'Switch to English' : '切换到中文'}</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
-// 翻译屏幕组件
-const TranslateScreen = ({ currentLanguage }) => {
-  const [sourceLanguage, setSourceLanguage] = useState("en");
-  const [targetLanguage, setTargetLanguage] = useState("zh");
-  const [audioContent, setAudioContent] = useState("");
-  const [translatedText, setTranslatedText] = useState("");
-  const [isTranslating, setIsTranslating] = useState(false);
-
-  const [audioData, setAudioData] = useState("");
-  const [translatedExternalAudioText, setTranslatedExternalAudioText] = useState("");
-
-  const t = translations[currentLanguage];
-
-  const handleTranslateMobileContent = async () => {
-    if (!audioContent) {
-      Alert.alert("错误", "请输入要翻译的音频内容");
-      return;
-    }
-
-    setIsTranslating(true);
-    try {
-      const response = await fetch("http://localhost:5000/api/translate/mobile-content", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          audioContent,
-          sourceLanguage,
-          targetLanguage,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setTranslatedText(data.translatedText);
-      } else {
-        Alert.alert("翻译失败", data.error || "未知错误");
-      }
-    } catch (error) {
-      console.error("Error translating mobile content:", error);
-      Alert.alert("网络错误", "无法连接到翻译服务");
-    } finally {
-      setIsTranslating(false);
-    }
-  };
-
-  const handleTranslateExternalAudio = async () => {
-    if (!audioData) {
-      Alert.alert("错误", "请输入要翻译的外部音频数据");
-      return;
-    }
-
-    setIsTranslating(true);
-    try {
-      const response = await fetch("http://localhost:5000/api/translate/external-audio", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          audioData,
-          sourceLanguage,
-          targetLanguage,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setTranslatedExternalAudioText(data.translatedText);
-      } else {
-        Alert.alert("翻译失败", data.error || "未知错误");
-      }
-    } catch (error) {
-      console.error("Error translating external audio:", error);
-      Alert.alert("网络错误", "无法连接到翻译服务");
-    } finally {
-      setIsTranslating(false);
-    }
-  };
-
-  return (
-    <ScrollView style={styles.screenContainer} showsVerticalScrollIndicator={false}>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>手机播放内容实时翻译</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="输入模拟音频内容 (例如: Hello World)"
-          value={audioContent}
-          onChangeText={setAudioContent}
-        />
-        <View style={styles.languageSelectorContainer}>
-          <TextInput
-            style={styles.languageInput}
-            placeholder="源语言 (例如: en)"
-            value={sourceLanguage}
-            onChangeText={setSourceLanguage}
-          />
-          <Ionicons name="arrow-forward" size={24} color={colors.textGray} style={styles.languageArrow} />
-          <TextInput
-            style={styles.languageInput}
-            placeholder="目标语言 (例如: zh)"
-            value={targetLanguage}
-            onChangeText={setTargetLanguage}
-          />
-        </View>
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={handleTranslateMobileContent}
-          disabled={isTranslating}
-        >
-          <Text style={styles.primaryButtonText}>
-            {isTranslating ? "翻译中..." : "开始翻译"}
-          </Text>
-        </TouchableOpacity>
-        {translatedText ? (
-          <View style={styles.translationResultContainer}>
-            <Text style={styles.translationResultLabel}>翻译结果:</Text>
-            <Text style={styles.translationResultText}>{translatedText}</Text>
-          </View>
-        ) : null}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>外部音频实时翻译</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="输入模拟外部音频数据 (例如: Environmental sound)"
-          value={audioData}
-          onChangeText={setAudioData}
-        />
-        <View style={styles.languageSelectorContainer}>
-          <TextInput
-            style={styles.languageInput}
-            placeholder="源语言 (例如: en)"
-            value={sourceLanguage}
-            onChangeText={setSourceLanguage}
-          />
-          <Ionicons name="arrow-forward" size={24} color={colors.textGray} style={styles.languageArrow} />
-          <TextInput
-            style={styles.languageInput}
-            placeholder="目标语言 (例如: zh)"
-            value={targetLanguage}
-            onChangeText={setTargetLanguage}
-          />
-        </View>
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={handleTranslateExternalAudio}
-          disabled={isTranslating}
-        >
-          <Text style={styles.primaryButtonText}>
-            {isTranslating ? "翻译中..." : "开始翻译"}
-          </Text>
-        </TouchableOpacity>
-        {translatedExternalAudioText ? (
-          <View style={styles.translationResultContainer}>
-            <Text style={styles.translationResultLabel}>翻译结果:</Text>
-            <Text style={styles.translationResultText}>{translatedExternalAudioText}</Text>
-          </View>
-        ) : null}
-      </View>
-    </ScrollView>
-  );
-};
-
-// 语音通话屏幕组件
+// Call Screen Component (Placeholder)
 const CallScreen = ({ currentLanguage, user }) => {
-  const [isMatching, setIsMatching] = useState(false);
-  const [matchedUser, setMatchedUser] = useState(null);
-  const [callId, setCallId] = useState(null);
-  const [inCall, setInCall] = useState(false);
-  const [socket, setSocket] = useState(null);
-
   const t = translations[currentLanguage];
-
-  useEffect(() => {
-    if (inCall && callId) {
-      // 连接Socket.IO
-      const newSocket = io("http://localhost:5000"); // 连接到后端Socket.IO
-      setSocket(newSocket);
-
-      newSocket.on("connect", () => {
-        console.log("Socket connected for call:", newSocket.id);
-        newSocket.emit("join_call", callId);
-      });
-
-      newSocket.on("user_joined_call", (userId) => {
-        console.log(`User ${userId} joined the call`);
-        // 这里可以添加UI更新，例如显示通话中的用户列表
-      });
-
-      newSocket.on("user_left_call", (userId) => {
-        console.log(`User ${userId} left the call`);
-        // 这里可以添加UI更新
-      });
-
-      newSocket.on("receive_audio", (audioChunk) => {
-        console.log("Received audio chunk:", audioChunk);
-        // 在这里处理接收到的音频数据，例如播放或翻译
-      });
-
-      newSocket.on("disconnect", () => {
-        console.log("Socket disconnected from call");
-        setInCall(false);
-        setMatchedUser(null);
-        setCallId(null);
-      });
-
-      return () => {
-        newSocket.emit("leave_call", callId);
-        newSocket.disconnect();
-      };
-    }
-  }, [inCall, callId]);
-
-  const handleMatchCall = async () => {
-    setIsMatching(true);
-    try {
-      const response = await fetch("http://localhost:5000/api/call/match", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          language: currentLanguage,
-          country: user.profile.location, // 假设用户资料中有国家信息
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setMatchedUser(data.matchedUser);
-        setCallId(data.callId);
-        setInCall(true);
-        Alert.alert("匹配成功", `已匹配到用户: ${data.matchedUser.name}`);
-      } else {
-        Alert.alert("匹配失败", data.error || "未知错误");
-      }
-    } catch (error) {
-      console.error("Error matching for call:", error);
-      Alert.alert("网络错误", "无法连接到匹配服务");
-    } finally {
-      setIsMatching(false);
-    }
-  };
-
-  const handleEndCall = () => {
-    if (socket) {
-      socket.emit("leave_call", callId);
-      socket.disconnect();
-    }
-    setInCall(false);
-    setMatchedUser(null);
-    setCallId(null);
-  };
-
-  const handleSendAudio = () => {
-    if (socket && inCall && callId) {
-      // 模拟发送音频数据
-      const audioChunk = "模拟音频数据";
-      socket.emit("send_audio", { callId, audioChunk });
-      console.log("Sending audio chunk...");
-    }
-  };
-
   return (
-    <ScrollView style={styles.screenContainer} showsVerticalScrollIndicator={false}>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>跨国语音通话匹配</Text>
-        {!inCall ? (
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={handleMatchCall}
-            disabled={isMatching}
-          >
-            <Text style={styles.primaryButtonText}>
-              {isMatching ? "匹配中..." : "开始匹配通话"}
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.callControls}>
-            <Text style={styles.callStatusText}>通话中...</Text>
-            {matchedUser && (
-              <Text style={styles.matchedUserText}>已连接: {matchedUser.name}</Text>
-            )}
-            <TouchableOpacity
-              style={styles.secondaryButton}
-              onPress={handleSendAudio}
-            >
-              <Text style={styles.secondaryButtonText}>发送模拟音频</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.logoutButton} // 复用logoutButton样式作为结束通话按钮
-              onPress={handleEndCall}
-            >
-              <Text style={styles.logoutButtonText}>结束通话</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    </ScrollView>
+    <View style={styles.screenContainer}>
+      <Text style={styles.header}>Call</Text>
+      <Text style={styles.placeholderText}>Voice and Video Call feature coming soon!</Text>
+    </View>
   );
 };
 
-// CommunityScreen, ProfileScreen, etc. (保持不变)
-
-// 样式 (添加到现有样式中)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -1008,151 +607,169 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.cream,
   },
   loadingText: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 32,
+    fontWeight: 'bold',
     color: colors.primary,
   },
   content: {
     flex: 1,
   },
   bottomNav: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
     backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: colors.gray,
-    paddingVertical: 10,
-    paddingBottom: Platform.OS === "ios" ? 20 : 10, // Adjust for iPhone X series bottom safe area
+    height: 60,
+    paddingBottom: Platform.OS === 'ios' ? 10 : 0, // Adjust for iPhone X notch
   },
   navItem: {
     flex: 1,
-    alignItems: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 5,
   },
   activeNavItem: {
-    // backgroundColor: colors.gray, // Optional: highlight active tab background
+    // backgroundColor: colors.lightGreen, // Optional: highlight active tab background
   },
   navText: {
-    fontSize: 12,
+    fontSize: 10,
     color: colors.textGray,
-    marginTop: 4,
+    marginTop: 2,
   },
   activeNavText: {
     color: colors.primary,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
-  // LoginScreen Styles
+  // Login Screen Styles
   loginContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
   languageButton: {
-    position: "absolute",
-    top: StatusBar.currentHeight + 10 || 40,
+    position: 'absolute',
+    top: 40,
     right: 20,
     padding: 8,
     borderRadius: 5,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.gray,
   },
   languageButtonText: {
-    color: colors.white,
-    fontWeight: "bold",
+    color: colors.black,
+    fontWeight: 'bold',
   },
   logoContainer: {
-    alignItems: "center",
+    alignItems: 'center',
     marginBottom: 40,
   },
   logo: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 10,
   },
   appTitle: {
     fontSize: 32,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     color: colors.black,
   },
   appSubtitle: {
     fontSize: 16,
     color: colors.textGray,
-    marginTop: 5,
   },
   formContainer: {
-    width: "100%",
+    width: '100%',
     maxWidth: 300,
   },
   input: {
     backgroundColor: colors.white,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 8,
+    padding: 15,
     marginBottom: 15,
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: colors.gray,
+    color: colors.black,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   authButton: {
-    width: "100%",
-    borderRadius: 10,
-    overflow: "hidden",
+    width: '100%',
+    borderRadius: 8,
+    overflow: 'hidden',
     marginTop: 10,
   },
   authButtonGradient: {
-    paddingVertical: 15,
-    alignItems: "center",
+    padding: 15,
+    alignItems: 'center',
   },
   authButtonText: {
     color: colors.white,
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   switchAuthMode: {
     marginTop: 20,
-    alignSelf: "center",
+    alignItems: 'center',
   },
   switchAuthModeText: {
     color: colors.primary,
     fontSize: 14,
   },
-  // HomeScreen Styles
+  // Home Screen Styles
   screenContainer: {
     flex: 1,
     backgroundColor: colors.cream,
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    padding: 16,
+    textAlign: 'center',
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray,
+  },
+  placeholderText: {
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
+    color: colors.textGray,
   },
   welcomeSection: {
     padding: 20,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     marginBottom: 20,
-    paddingTop: Platform.OS === "ios" ? 60 : 20,
   },
   welcomeContent: {
-    alignItems: "center",
+    alignItems: 'center',
   },
   welcomeTitle: {
     fontSize: 28,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     color: colors.white,
-    marginBottom: 5,
+    marginBottom: 10,
   },
   welcomeSubtitle: {
     fontSize: 16,
     color: colors.white,
-    opacity: 0.8,
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: 20,
   },
   actionButtons: {
-    flexDirection: "row",
+    flexDirection: 'row',
     marginTop: 10,
   },
   primaryButton: {
@@ -1160,86 +777,78 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 25,
     borderRadius: 25,
-    marginHorizontal: 5,
+    marginHorizontal: 10,
   },
   primaryButtonText: {
     color: colors.primary,
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   secondaryButton: {
-    borderWidth: 2,
     borderColor: colors.white,
+    borderWidth: 2,
     paddingVertical: 12,
     paddingHorizontal: 25,
     borderRadius: 25,
-    marginHorizontal: 5,
+    marginHorizontal: 10,
   },
   secondaryButtonText: {
     color: colors.white,
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   statsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-around",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
     paddingHorizontal: 10,
     marginBottom: 20,
   },
   statItem: {
-    backgroundColor: colors.white,
-    borderRadius: 15,
-    padding: 15,
-    alignItems: "center",
-    width: "45%",
-    marginBottom: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    alignItems: 'center',
+    marginVertical: 10,
+    width: '45%', // Two items per row
   },
   statNumber: {
-    fontSize: 22,
-    fontWeight: "bold",
+    fontSize: 24,
+    fontWeight: 'bold',
     color: colors.black,
     marginTop: 5,
   },
   statLabel: {
     fontSize: 14,
     color: colors.textGray,
-    textAlign: "center",
+    textAlign: 'center',
   },
   featuresContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    padding: 20,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: 'bold',
     color: colors.black,
-    marginBottom: 15,
+    marginBottom: 20,
+    textAlign: 'center',
   },
   featureCard: {
-    flexDirection: "row",
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.white,
-    borderRadius: 15,
+    borderRadius: 10,
     padding: 15,
     marginBottom: 15,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowRadius: 2,
+    elevation: 2,
   },
   featureIcon: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 15,
   },
   featureContent: {
@@ -1247,7 +856,7 @@ const styles = StyleSheet.create({
   },
   featureTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     color: colors.black,
     marginBottom: 5,
   },
@@ -1255,301 +864,66 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textGray,
   },
-  // ChatScreen Styles
-  chatContainer: {
-    flex: 1,
-    backgroundColor: colors.cream,
-  },
-  chatHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.gray,
-    backgroundColor: colors.white,
-  },
-  chatUserInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  chatAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-  },
-  chatUserName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: colors.black,
-  },
-  chatUserStatus: {
-    fontSize: 12,
-    color: colors.green,
-  },
-  chatMenuButton: {
-    padding: 5,
-  },
-  messagesContainer: {
-    flex: 1,
+  // Chat Screen Styles
+  messageBubble: {
     padding: 10,
-  },
-  messageItem: {
-    flexDirection: "row",
+    borderRadius: 10,
     marginBottom: 10,
+    maxWidth: '80%',
   },
   myMessage: {
-    justifyContent: "flex-end",
+    alignSelf: 'flex-end',
+    backgroundColor: colors.primary,
   },
   otherMessage: {
-    justifyContent: "flex-start",
-  },
-  messageBubble: {
-    padding: 12,
-    borderRadius: 20,
-    maxWidth: "80%",
-  },
-  myMessageBubble: {
-    backgroundColor: colors.primary,
-    borderBottomRightRadius: 5,
-  },
-  otherMessageBubble: {
-    backgroundColor: colors.white,
-    borderBottomLeftRadius: 5,
-    borderWidth: 1,
-    borderColor: colors.gray,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.gray,
   },
   messageText: {
-    fontSize: 16,
-    color: colors.black,
-  },
-  myMessageText: {
     color: colors.white,
   },
-  messageTimestamp: {
-    fontSize: 10,
-    color: colors.textGray,
+  translatedText: {
+    color: colors.white,
+    fontSize: 12,
     marginTop: 5,
-    alignSelf: "flex-end",
   },
-  chatInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+  timestamp: {
+    fontSize: 10,
+    color: colors.white,
+    marginTop: 5,
+    textAlign: 'right',
+  },
+  inputContainer: {
+    flexDirection: 'row',
     padding: 10,
     borderTopWidth: 1,
     borderTopColor: colors.gray,
     backgroundColor: colors.white,
   },
-  chatTextInput: {
+  input: {
     flex: 1,
     backgroundColor: colors.gray,
     borderRadius: 20,
     paddingHorizontal: 15,
-    paddingVertical: 10,
     marginRight: 10,
-    fontSize: 16,
   },
   sendButton: {
     backgroundColor: colors.primary,
+    borderRadius: 20,
     width: 40,
     height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  // TranslateScreen Styles
-  languageSelectorContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 15,
-  },
-  languageInput: {
-    flex: 1,
-    backgroundColor: colors.white,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 10,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: colors.gray,
-  },
-  languageArrow: {
-    marginHorizontal: 10,
-  },
-  translationResultContainer: {
-    marginTop: 20,
-    padding: 15,
-    backgroundColor: colors.white,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.gray,
-  },
-  translationResultLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: colors.black,
-    marginBottom: 5,
-  },
-  translationResultText: {
-    fontSize: 16,
-    color: colors.textGray,
-  },
-  // CommunityScreen Styles
-  communityContainer: {
-    flex: 1,
-    backgroundColor: colors.cream,
-    padding: 20,
-  },
-  communityCard: {
-    backgroundColor: colors.white,
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  communityTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: colors.black,
-    marginBottom: 10,
-  },
-  communityDescription: {
-    fontSize: 14,
-    color: colors.textGray,
-    marginBottom: 10,
-  },
-  joinButton: {
-    backgroundColor: colors.green,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    alignSelf: "flex-start",
-  },
-  joinButtonText: {
-    color: colors.white,
-    fontWeight: "bold",
-  },
-  // ProfileScreen Styles
-  profileContainer: {
-    flex: 1,
-    backgroundColor: colors.cream,
-  },
-  profileHeader: {
-    alignItems: "center",
-    padding: 20,
-    backgroundColor: colors.white,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  profileAvatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 10,
-    borderWidth: 3,
-    borderColor: colors.primary,
-  },
-  profileName: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: colors.black,
-    marginBottom: 5,
-  },
-  profileUsername: {
-    fontSize: 16,
-    color: colors.textGray,
-  },
-  profileStats: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    width: "100%",
-    marginTop: 20,
-  },
-  profileStatItem: {
-    alignItems: "center",
-  },
-  profileStatNumber: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: colors.black,
-  },
-  profileStatLabel: {
-    fontSize: 12,
-    color: colors.textGray,
-  },
-  profileSection: {
-    backgroundColor: colors.white,
-    borderRadius: 15,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  profileSectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: colors.black,
-    marginBottom: 10,
-  },
-  profileOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.gray,
-  },
-  profileOptionText: {
-    fontSize: 16,
-    color: colors.black,
-    marginLeft: 10,
-    flex: 1,
-  },
-  profileOptionValue: {
-    fontSize: 16,
-    color: colors.textGray,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   logoutButton: {
     backgroundColor: colors.coral,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
-    marginHorizontal: 20,
+    padding: 10,
+    borderRadius: 5,
     marginTop: 20,
   },
   logoutButtonText: {
     color: colors.white,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  // CallScreen Styles
-  callControls: {
-    marginTop: 20,
-    alignItems: "center",
-  },
-  callStatusText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  matchedUserText: {
-    fontSize: 16,
-    marginBottom: 20,
+    textAlign: 'center',
   },
 });
 
